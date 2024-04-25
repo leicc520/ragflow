@@ -24,11 +24,16 @@ class HuEs:
             raise Exception("Can't connect to ES cluster")
 
     def conn(self):
+        http_auth = None
+        if settings.ES["user"] and settings.ES["password"]:
+            http_auth = (settings.ES["user"], settings.ES["password"])
         for _ in range(10):
             try:
                 self.es = Elasticsearch(
                     settings.ES["hosts"].split(","),
-                    timeout=600
+                    timeout=600,
+                    verify_certs=False,
+                    http_auth=http_auth,
                 )
                 if self.es:
                     self.info = self.es.info()
