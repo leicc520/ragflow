@@ -317,9 +317,13 @@ if __name__ == "__main__":
     peewee_logger.propagate = False
     peewee_logger.addHandler(database_logger.handlers[0])
     peewee_logger.setLevel(database_logger.level)
+    comm, mod = 0, 0
+    if len(sys.argv) > 2:
+        comm = int(sys.argv[2])
+        mod = int(sys.argv[1])
 
     #from mpi4py import MPI
     #comm = MPI.COMM_WORLD
     while True:
-        main(int(sys.argv[2]), int(sys.argv[1]))
+        main(comm, mod)
         close_connection()
