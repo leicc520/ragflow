@@ -5,6 +5,7 @@ target/
 __pycache__/
 hudet/
 cv/
+res/
 layout_app.py
 api/flask_session
 logs/
