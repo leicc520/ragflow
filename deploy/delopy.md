@@ -72,4 +72,4 @@ export CC=/usr/lib64/openmpi/bin/mpicc
 pip install mpi4py
 
 安装依赖的搜索路径
-export PYTHONPATH=/usr/local/lib64/python3.9/site-packages:.
+export PYTHONPATH=/usr/local/lib64/python3.9/site-packages:/usr/local/lib64/python3.9/site-packages:.
