@@ -6,7 +6,7 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
-  ToolOutlined,
+  LinkOutlined,
 } from '@ant-design/icons';
 import { Button, Space, Tooltip } from 'antd';
 import { useHandleDeleteFile } from '../hooks';
@@ -17,7 +17,8 @@ interface IProps {
   record: IFile;
   setCurrentRecord: (record: any) => void;
   showRenameModal: (record: IFile) => void;
-  showConnectToKnowledgeModal: (ids: string[]) => void;
+  showConnectToKnowledgeModal: (record: IFile) => void;
+  setSelectedRowKeys(keys: string[]): void;
 }
 
 const ActionCell = ({
@@ -25,15 +26,19 @@ const ActionCell = ({
   setCurrentRecord,
   showRenameModal,
   showConnectToKnowledgeModal,
+  setSelectedRowKeys,
 }: IProps) => {
   const documentId = record.id;
   const beingUsed = false;
-  const { t } = useTranslate('knowledgeDetails');
-  const { handleRemoveFile } = useHandleDeleteFile([documentId]);
+  const { t } = useTranslate('fileManager');
+  const { handleRemoveFile } = useHandleDeleteFile(
+    [documentId],
+    setSelectedRowKeys,
+  );
 
   const onDownloadDocument = () => {
     downloadFile({
-      url: `${api_host}/document/get/${documentId}`,
+      url: `${api_host}/file/get/${documentId}`,
       filename: record.name,
     });
   };
@@ -48,18 +53,20 @@ const ActionCell = ({
   };
 
   const onShowConnectToKnowledgeModal = () => {
-    showConnectToKnowledgeModal([documentId]);
+    showConnectToKnowledgeModal(record);
   };
 
   return (
     <Space size={0}>
-      <Button
-        type="text"
-        className={styles.iconButton}
-        onClick={onShowConnectToKnowledgeModal}
-      >
-        <ToolOutlined size={20} />
-      </Button>
+      <Tooltip title={t('addToKnowledge')}>
+        <Button
+          type="text"
+          className={styles.iconButton}
+          onClick={onShowConnectToKnowledgeModal}
+        >
+          <LinkOutlined size={20} />
+        </Button>
+      </Tooltip>
 
       <Tooltip title={t('rename', { keyPrefix: 'common' })}>
         <Button
@@ -71,22 +78,28 @@ const ActionCell = ({
           <EditOutlined size={20} />
         </Button>
       </Tooltip>
-      <Button
-        type="text"
-        disabled={beingUsed}
-        onClick={handleRemoveFile}
-        className={styles.iconButton}
-      >
-        <DeleteOutlined size={20} />
-      </Button>
-      <Button
-        type="text"
-        disabled={beingUsed}
-        onClick={onDownloadDocument}
-        className={styles.iconButton}
-      >
-        <DownloadOutlined size={20} />
-      </Button>
+      <Tooltip title={t('delete', { keyPrefix: 'common' })}>
+        <Button
+          type="text"
+          disabled={beingUsed}
+          onClick={handleRemoveFile}
+          className={styles.iconButton}
+        >
+          <DeleteOutlined size={20} />
+        </Button>
+      </Tooltip>
+      {record.type !== 'folder' && (
+        <Tooltip title={t('download', { keyPrefix: 'common' })}>
+          <Button
+            type="text"
+            disabled={beingUsed}
+            onClick={onDownloadDocument}
+            className={styles.iconButton}
+          >
+            <DownloadOutlined size={20} />
+          </Button>
+        </Tooltip>
+      )}
     </Space>
   );
 };
