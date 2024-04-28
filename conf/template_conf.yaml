@@ -19,6 +19,9 @@ redis:
   host: '127.0.0.1:6379'
 es:
   hosts: 'http://127.0.0.1:9200'
+rag_notify:
+  url: 'xxxxxxxxxx'
+  api_key: 'xxxxxxxxxx'
 user_default_llm:
   factory: 'Tongyi-Qianwen'
   api_key: 'sk-xxxxxxxxxxxxx'

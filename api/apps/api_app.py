@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from flask import request
 from flask_login import login_required, current_user
 
-from api.db import FileType, ParserType
+from api.db import FileType, ParserType, TaskStatus
 from api.db.db_models import APIToken, API4Conversation
 from api.db.services import duplicate_name
 from api.db.services.api_service import APITokenService, API4ConversationService
@@ -203,6 +203,17 @@ def get(conversation_id):
     except Exception as e:
         return server_error_response(e)
 
+@manager.route('/document/<doc_id>', methods=['GET'])
+# @login_required
+def get(doc_id):
+    try:
+        e, doc = DocumentService.get_by_id(doc_id)
+        if not e:
+            return get_data_error_result(retmsg="Conversation not found!")
+
+        return get_json_result(data=doc.to_dict())
+    except Exception as e:
+        return server_error_response(e)
 
 @manager.route('/document/upload', methods=['POST'])
 @validate_request("kb_name")
@@ -234,10 +245,12 @@ def upload():
         return get_json_result(
             data=False, retmsg='No file selected!', retcode=RetCode.ARGUMENT_ERROR)
     try:
+        '''
+        不需要限制用户上传文件数量
         if DocumentService.get_doc_count(kb.tenant_id) >= int(os.environ.get('MAX_FILE_NUM_PER_USER', 8192)):
             return get_data_error_result(
                 retmsg="Exceed the maximum file number of a free user!")
-
+        '''
         filename = duplicate_name(
             DocumentService.query,
             name=file.filename,
@@ -264,6 +277,13 @@ def upload():
             "size": len(blob),
             "thumbnail": thumbnail(filename, blob)
         }
+        #设置上传之后立刻解析
+        if request.form.get("run"):
+            doc["run"] = TaskStatus.RUNNING.value
+            doc["progress"] = 0
+            doc["progress_msg"] = ""
+            doc["chunk_num"] = 0
+            doc["token_num"] = 0
         if doc["type"] == FileType.VISUAL:
             doc["parser_id"] = ParserType.PICTURE.value
         if re.search(r"\.(ppt|pptx|pages)$", filename):

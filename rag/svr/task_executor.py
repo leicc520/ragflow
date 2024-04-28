@@ -47,6 +47,7 @@ from api.db import LLMType, ParserType
 from api.db.services.document_service import DocumentService
 from api.db.services.llm_service import LLMBundle
 from api.utils.file_utils import get_project_base_directory
+from api.utils.rag_utils import call_rag_notify
 from rag.utils.redis_conn import REDIS_CONN
 
 BATCH_SIZE = 64
@@ -313,7 +314,7 @@ def main(comm, mod):
             cron_logger.info(
                 "Chunk doc({}), token({}), chunks({}), elapsed:{}".format(
                     r["id"], tk_count, len(cks), timer()-st))
-
+        call_rag_notify(r) #通知第三方业务处理完成
         tmf.write(str(r["update_time"]) + "\n")
     tmf.close()
 
