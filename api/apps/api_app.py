@@ -193,7 +193,7 @@ def completion():
 
 @manager.route('/conversation/<conversation_id>', methods=['GET'])
 # @login_required
-def get(conversation_id):
+def get_conversation(conversation_id):
     try:
         e, conv = API4ConversationService.get_by_id(conversation_id)
         if not e:
@@ -205,7 +205,7 @@ def get(conversation_id):
 
 @manager.route('/document/<doc_id>', methods=['GET'])
 # @login_required
-def get(doc_id):
+def get_document(doc_id):
     try:
         e, doc = DocumentService.get_by_id(doc_id)
         if not e:
