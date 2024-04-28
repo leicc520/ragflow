@@ -70,6 +70,9 @@ def login():
 
 @manager.route('/github_callback', methods=['GET'])
 def github_callback():
+    # 关闭第三方登录逻辑
+    return redirect("/?error=closed:github not supported login")
+
     import requests
     res = requests.post(GITHUB_OAUTH.get("url"), data={
         "client_id": GITHUB_OAUTH.get("client_id"),
@@ -77,6 +80,7 @@ def github_callback():
         "code": request.args.get('code')
     }, headers={"Accept": "application/json"})
     res = res.json()
+
     if "error" in res:
         return redirect("/?error=%s" % res["error_description"])
 
@@ -255,6 +259,9 @@ def user_register(user_id, user):
 @manager.route("/register", methods=["POST"])
 @validate_request("nickname", "email", "password")
 def user_add():
+    return get_json_result(data=False, retmsg=f'private platform, please contact us!',
+                           retcode=RetCode.OPERATING_ERROR)
+
     req = request.json
     if UserService.query(email=req["email"]):
         return get_json_result(
