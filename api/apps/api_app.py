@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from flask import request
 from flask_login import login_required, current_user
 
+
 from api.db import FileType, ParserType, TaskStatus, LLMType
 from api.db.db_models import APIToken
 from api.db.services import duplicate_name
@@ -29,13 +30,13 @@ from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.user_service import UserTenantService
 from api.settings import RetCode, retrievaler
 from api.db.services.llm_service import TenantLLMService
-from api.utils import get_uuid, current_timestamp, datetime_format
+from api.utils import get_uuid, current_timestamp, datetime_format, rmSpace
 from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request
 from itsdangerous import URLSafeTimedSerializer
 
 from api.utils.file_utils import filename_type, thumbnail
 from rag.utils import MINIO
-
+from rag.nlp import search
 
 def generate_confirmation_token(tenent_id):
     serializer = URLSafeTimedSerializer(tenent_id)
@@ -323,5 +324,53 @@ def retrieval():
     except Exception as e:
         if str(e).find("not_found") > 0:
             return get_json_result(data=False, retmsg=f'No chunk found! Check the chunk status please!',
+                                   retcode=RetCode.DATA_ERROR)
+        return server_error_response(e)
+
+@manager.route('/chunk/list', methods=['POST'])
+@validate_request("doc_id")
+def chunk_list():
+    req = request.json
+    doc_id = req["doc_id"]
+    page = int(req.get("page", 1))
+    size = int(req.get("size", 30))
+    question = req.get("keywords", "")
+    try:
+        tenant_id = DocumentService.get_tenant_id(req["doc_id"])
+        if not tenant_id:
+            return get_data_error_result(retmsg="Tenant not found!")
+        e, doc = DocumentService.get_by_id(doc_id)
+        if not e:
+            return get_data_error_result(retmsg="Document not found!")
+        query = {
+            "doc_ids": [doc_id], "page": page, "size": size, "question": question, "sort": True
+        }
+        if "available_int" in req:
+            query["available_int"] = int(req["available_int"])
+        sres = retrievaler.search(query, search.index_name(tenant_id))
+        res = {"total": sres.total, "chunks": [], "doc": doc.to_dict()}
+        for id in sres.ids:
+            d = {
+                "chunk_id": id,
+                "content_with_weight": rmSpace(sres.highlight[id]) if question and id in sres.highlight else sres.field[id].get(
+                    "content_with_weight", ""),
+                "doc_id": sres.field[id]["doc_id"],
+                "docnm_kwd": sres.field[id]["docnm_kwd"],
+                "important_kwd": sres.field[id].get("important_kwd", []),
+                "img_id": sres.field[id].get("img_id", ""),
+                "available_int": sres.field[id].get("available_int", 1),
+                "positions": sres.field[id].get("position_int", "").split("\t")
+            }
+            if len(d["positions"]) % 5 == 0:
+                poss = []
+                for i in range(0, len(d["positions"]), 5):
+                    poss.append([float(d["positions"][i]), float(d["positions"][i + 1]), float(d["positions"][i + 2]),
+                                 float(d["positions"][i + 3]), float(d["positions"][i + 4])])
+                d["positions"] = poss
+            res["chunks"].append(d)
+        return get_json_result(data=res)
+    except Exception as e:
+        if str(e).find("not_found") > 0:
+            return get_json_result(data=False, retmsg=f'No chunk found!',
                                    retcode=RetCode.DATA_ERROR)
         return server_error_response(e)
