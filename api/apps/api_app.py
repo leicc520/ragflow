@@ -295,7 +295,6 @@ def upload():
         return server_error_response(e)
 
 @manager.route('/kb/retrieval', methods=['POST'])
-@login_required
 @validate_request("kb_id", "question")
 def retrieval():
     req = request.json
