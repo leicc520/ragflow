@@ -19,15 +19,16 @@ from datetime import datetime, timedelta
 from flask import request
 from flask_login import login_required, current_user
 
-from api.db import FileType, ParserType, TaskStatus
-from api.db.db_models import APIToken, API4Conversation
+from api.db import FileType, ParserType, TaskStatus, LLMType
+from api.db.db_models import APIToken
 from api.db.services import duplicate_name
 from api.db.services.api_service import APITokenService, API4ConversationService
 from api.db.services.dialog_service import DialogService, chat
 from api.db.services.document_service import DocumentService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.user_service import UserTenantService
-from api.settings import RetCode
+from api.settings import RetCode, retrievaler
+from api.db.services.llm_service import TenantLLMService
 from api.utils import get_uuid, current_timestamp, datetime_format
 from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request
 from itsdangerous import URLSafeTimedSerializer
@@ -291,4 +292,37 @@ def upload():
         doc = DocumentService.insert(doc)
         return get_json_result(data=doc.to_json())
     except Exception as e:
+        return server_error_response(e)
+
+@manager.route('/kb/retrieval', methods=['POST'])
+@login_required
+@validate_request("kb_id", "question")
+def retrieval():
+    req = request.json
+    page = int(req.get("page", 1))
+    size = int(req.get("size", 1024))
+    question = req["question"]
+    kb_id = req["kb_id"]
+    doc_ids = req.get("doc_ids", [])
+    similarity_threshold = float(req.get("similarity_threshold", 0.2))
+    vector_similarity_weight = float(req.get("vector_similarity_weight", 0.3))
+    top = int(req.get("top_k", 1024))
+    try:
+        e, kb = KnowledgebaseService.get_by_id(kb_id)
+        if not e:
+            return get_data_error_result(retmsg="Knowledgebase not found!")
+
+        embd_mdl = TenantLLMService.model_instance(
+            kb.tenant_id, LLMType.EMBEDDING.value, llm_name=kb.embd_id)
+        ranks = retrievaler.retrieval(question, embd_mdl, kb.tenant_id, [kb_id], page, size, similarity_threshold,
+                                      vector_similarity_weight, top, doc_ids, aggs=False)
+        for c in ranks["chunks"]:
+            if "vector" in c:
+                del c["vector"]
+
+        return get_json_result(data=ranks)
+    except Exception as e:
+        if str(e).find("not_found") > 0:
+            return get_json_result(data=False, retmsg=f'No chunk found! Check the chunk status please!',
+                                   retcode=RetCode.DATA_ERROR)
         return server_error_response(e)
