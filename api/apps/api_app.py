@@ -30,12 +30,12 @@ from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.user_service import UserTenantService
 from api.settings import RetCode, retrievaler
 from api.db.services.llm_service import TenantLLMService
-from api.utils import get_uuid, current_timestamp, datetime_format, rmSpace
+from api.utils import get_uuid, current_timestamp, datetime_format
 from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request
 from itsdangerous import URLSafeTimedSerializer
 
 from api.utils.file_utils import filename_type, thumbnail
-from rag.utils import MINIO
+from rag.utils import MINIO, rmSpace
 from rag.nlp import search
 
 def generate_confirmation_token(tenent_id):
