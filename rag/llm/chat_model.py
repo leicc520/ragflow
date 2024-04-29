@@ -197,6 +197,7 @@ class AwsClaude3(Base):
             if "presence_penalty" in gen_conf: del gen_conf["presence_penalty"]
             if "frequency_penalty" in gen_conf: del gen_conf["frequency_penalty"]
             if system: gen_conf["system"] = system
+            if not gen_conf["max_tokens"]: gen_conf["max_tokens"] = 128
             response = self.client.messages.create(
                 model= self.model_name,
                 messages=history,
