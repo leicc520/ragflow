@@ -40,6 +40,7 @@ class TaskService(CommonService):
             Document.parser_config,
             Document.name,
             Document.type,
+            Document.use_type,
             Document.location,
             Document.size,
             Knowledgebase.tenant_id,

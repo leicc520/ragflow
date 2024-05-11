@@ -27,7 +27,7 @@ def call_rag_notify(doc):
     """
     发送RAG解析完毕的数据通知业务逻辑
     """
-    result = {"kb_id": doc["kb_id"], "doc_id":doc["doc_id"], "name":doc["name"]}
+    result = {"kb_id": doc["kb_id"], "doc_id":doc["doc_id"], "use_type":doc["use_type"], "name":doc["name"]}
     return call_app_rag_api(cmdDocumentParseFinished, result)
 def call_app_rag_api(cmd, result):
     link = RAG_CONFIG.get("url")

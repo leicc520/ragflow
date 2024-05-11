@@ -640,6 +640,11 @@ class Document(DataBaseModel):
         null=True,
         help_text="file name",
         index=True)
+    use_type = CharField(
+        max_length=32,
+        null=True,
+        default="document",
+        help_text="file use type")
     location = CharField(
         max_length=255,
         null=True,

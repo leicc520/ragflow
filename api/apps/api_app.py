@@ -227,6 +227,7 @@ def upload():
             data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
 
     kb_name = request.form.get("kb_name").strip()
+    use_type = request.form.get("use_type", "document")
     tenant_id = objs[0].tenant_id
 
     try:
@@ -274,6 +275,7 @@ def upload():
             "parser_config": kb.parser_config,
             "created_by": kb.tenant_id,
             "type": filetype,
+            "use_type": use_type,
             "name": filename,
             "location": location,
             "size": len(blob),
