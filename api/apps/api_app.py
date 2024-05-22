@@ -16,7 +16,7 @@
 import os
 import re
 from datetime import datetime, timedelta
-from flask import request
+from flask import request, make_response
 from flask_login import login_required, current_user
 
 
@@ -206,7 +206,6 @@ def get_conversation(conversation_id):
         return server_error_response(e)
 
 @manager.route('/document/<doc_id>', methods=['GET'])
-# @login_required
 def get_document(doc_id):
     try:
         e, doc = DocumentService.get_by_id(doc_id)
@@ -214,6 +213,16 @@ def get_document(doc_id):
             return get_data_error_result(retmsg="Conversation not found!")
 
         return get_json_result(data=doc.to_dict())
+    except Exception as e:
+        return server_error_response(e)
+
+@manager.route('/document/image/<image_id>', methods=['GET'])
+def get_document_image(image_id):
+    try:
+        bkt, nm = image_id.split("-")
+        response = make_response(MINIO.get(bkt, nm))
+        response.headers.set('Content-Type', 'image/JPEG')
+        return response
     except Exception as e:
         return server_error_response(e)
 
