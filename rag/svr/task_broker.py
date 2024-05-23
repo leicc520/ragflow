@@ -92,6 +92,7 @@ def dispatch():
                 try:
                     REDIS_CONN.set("{}/{}".format(r["kb_id"], r["location"]), file_bin, 12*60)
                 except Exception as e:
+                    print("Put into redis[EXCEPTION]:" + str(e))
                     cron_logger.warning("Put into redis[EXCEPTION]:" + str(e))
 
             if r["type"] == FileType.PDF.value:
@@ -116,6 +117,7 @@ def dispatch():
                         task["from_page"] = p
                         task["to_page"] = min(p + page_size, e)
                         tsks.append(task)
+                print(tsks, '=')
 
             elif r["parser_id"] == "table":
                 rn = HuExcelParser.row_number(
@@ -127,10 +129,11 @@ def dispatch():
                     tsks.append(task)
             else:
                 tsks.append(new_task())
-
+            print(tsks, '====================')
             bulk_insert_into_db(Task, tsks, True)
             set_dispatching(r["id"])
         except Exception as e:
+            print(e, 'err=================')
             cron_logger.exception(e)
 
         tmf.write(str(r["update_time"]) + "\n")
