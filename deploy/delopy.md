@@ -73,3 +73,29 @@ pip install mpi4py
 
 安装依赖的搜索路径
 export PYTHONPATH=/usr/local/lib64/python3.9/site-packages:/usr/local/lib64/python3.9/site-packages:.
+
+
+pdf文件解析报错
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/data/ragflow/ragflow/rag/svr/task_broker.py", line 99, in dispatch
+    pages = PdfParser.total_page_number(r["name"], file_bin)
+  File "/data/ragflow/ragflow/deepdoc/parser/pdf_parser.py", line 924, in total_page_number
+    pdf = fitz.open(fnm) if not binary else fitz.open(
+  File "/usr/local/lib64/python3.9/site-packages/fitz/__init__.py", line 2630, in __init__
+    raise TypeError("bad type: 'stream'")
+TypeError: bad type: 'stream'
+bad type: 'stream'
+Traceback (most recent call last):
+  File "/data/ragflow/ragflow/deepdoc/parser/pdf_parser.py", line 921, in total_page_number
+    fnm) if not binary else pdfplumber.open(BytesIO(binary))
+  File "/usr/local/lib/python3.9/site-packages/pdfplumber/pdf.py", line 95, in open
+    return cls(
+  File "/usr/local/lib/python3.9/site-packages/pdfplumber/pdf.py", line 45, in __init__
+    self.doc = PDFDocument(PDFParser(stream), password=password or "")
+  File "/usr/local/lib/python3.9/site-packages/pdfminer/pdfdocument.py", line 752, in __init__
+    raise PDFSyntaxError("No /Root object! - Is this really a PDF?")
+pdfminer.pdfparser.PDFSyntaxError: No /Root object! - Is this really a PDF?
+
+日志安装目录的logs目录
