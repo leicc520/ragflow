@@ -22,6 +22,7 @@ from ollama import Client
 from volcengine.maas.v2 import MaasService
 from rag.nlp import is_english
 from rag.utils import num_tokens_from_string
+from anthropic import AnthropicBedrock
 
 
 class Base(ABC):
@@ -464,3 +465,55 @@ class VolcEngineChat(Base):
         except Exception as e:
             yield ans + "\n**ERROR**: " + str(e)
         yield tk_count
+
+class AwsClaude3(Base):
+    def __init__(self, key, model_name='claude-3-opus-20240229', **kwargs):
+        aws_access = key.split(":")
+        if not key or len(aws_access) < 2:
+            return
+        if len(aws_access) == 2:
+            aws_access.append("us-west-2")
+        self.client = AnthropicBedrock(
+            aws_access_key=aws_access[0],
+            aws_secret_key=aws_access[1],
+            aws_region=aws_access[2],
+        )
+        self.model_name = model_name
+
+    def chat(self, system, history, gen_conf):
+        try:
+            if "presence_penalty" in gen_conf: del gen_conf["presence_penalty"]
+            if "frequency_penalty" in gen_conf: del gen_conf["frequency_penalty"]
+            if system: gen_conf["system"] = system
+            if not gen_conf["max_tokens"]: gen_conf["max_tokens"] = 128
+            response = self.client.messages.create(
+                model= self.model_name,
+                messages=history,
+                **gen_conf
+            )
+            ans = response.content[0].text.strip()
+            if response.stop_reason.strip() == "max_tokens":
+                ans += "...\nFor the content length reason, it stopped, continue?" if is_english(
+                    [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
+            return ans, response.usage.input_tokens + response.usage.output_tokens
+        except Exception as e:
+            return "**ERROR**: " + str(e), 0
+
+    def chat_streamly(self, system, history, gen_conf):
+        try:
+            if "presence_penalty" in gen_conf: del gen_conf["presence_penalty"]
+            if "frequency_penalty" in gen_conf: del gen_conf["frequency_penalty"]
+            if system: gen_conf["system"] = system
+            if not gen_conf["max_tokens"]: gen_conf["max_tokens"] = 128
+            response = self.client.messages.create(
+                model=self.model_name,
+                messages=history,
+                **gen_conf
+            )
+            ans = response.content[0].text.strip()
+            if response.stop_reason.strip() == "max_tokens":
+                ans += "...\nFor the content length reason, it stopped, continue?" if is_english(
+                    [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
+            return ans, response.usage.input_tokens + response.usage.output_tokens
+        except Exception as e:
+            return "**ERROR**: " + str(e), 0

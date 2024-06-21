@@ -285,6 +285,8 @@ class DatabaseLock:
 
     def lock(self):
         # SQL parameters only support %s format placeholders
+        if self.timeout == -1:
+            self.timeout = 0xffffffff
         cursor = self.db.execute_sql(
             "SELECT GET_LOCK(%s, %s)", (self.lock_name, self.timeout))
         ret = cursor.fetchone()
@@ -644,6 +646,11 @@ class Document(DataBaseModel):
         null=True,
         help_text="file name",
         index=True)
+    use_type = CharField(
+        max_length=32,
+        null=True,
+        default="document",
+        help_text="file use type")
     location = CharField(
         max_length=255,
         null=True,

@@ -16,6 +16,7 @@
 import os
 import time
 import uuid
+import base64
 from copy import deepcopy
 
 from api.db import LLMType, UserTenantRole
@@ -29,9 +30,10 @@ from api.settings import CHAT_MDL, EMBEDDING_MDL, ASR_MDL, IMAGE2TEXT_MDL, PARSE
 
 
 def init_superuser():
+    password = base64.b64encode("admin".encode('utf-8')).decode('utf-8')
     user_info = {
         "id": uuid.uuid1().hex,
-        "password": "admin",
+        "password": password,
         "nickname": "admin",
         "is_superuser": True,
         "email": "admin@ragflow.io",

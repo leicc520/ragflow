@@ -14,14 +14,13 @@
 #  limitations under the License.
 #
 import json
-import os
 import re
 from datetime import datetime, timedelta
-from flask import request, Response
+from flask import request, Response, make_response
 from flask_login import login_required, current_user
 
-from api.db import FileType, ParserType, FileSource
-from api.db.db_models import APIToken, API4Conversation, Task, File
+from api.db import FileType, ParserType, FileSource, LLMType
+from api.db.db_models import APIToken, Task, File
 from api.db.services import duplicate_name
 from api.db.services.api_service import APITokenService, API4ConversationService
 from api.db.services.dialog_service import DialogService, chat
@@ -30,6 +29,7 @@ from api.db.services.file2document_service import File2DocumentService
 from api.db.services.file_service import FileService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.task_service import queue_tasks, TaskService
+from api.db.services.llm_service import TenantLLMService
 from api.db.services.user_service import UserTenantService
 from api.settings import RetCode, retrievaler
 from api.utils import get_uuid, current_timestamp, datetime_format
@@ -38,7 +38,8 @@ from itsdangerous import URLSafeTimedSerializer
 
 from api.utils.file_utils import filename_type, thumbnail
 from rag.utils.minio_conn import MINIO
-
+from rag.utils import rmSpace
+from rag.nlp import search
 
 def generate_confirmation_token(tenent_id):
     serializer = URLSafeTimedSerializer(tenent_id)
@@ -241,7 +242,7 @@ def completion():
 
 @manager.route('/conversation/<conversation_id>', methods=['GET'])
 # @login_required
-def get(conversation_id):
+def get_conversation(conversation_id):
     try:
         e, conv = API4ConversationService.get_by_id(conversation_id)
         if not e:
@@ -268,6 +269,7 @@ def upload():
             data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
 
     kb_name = request.form.get("kb_name").strip()
+    use_type = request.form.get("use_type", "document")
     tenant_id = objs[0].tenant_id
 
     try:
@@ -295,10 +297,11 @@ def upload():
     kb_folder = FileService.new_a_file_from_kb(kb.tenant_id, kb.name, kb_root_folder["id"])
 
     try:
+        '''
         if DocumentService.get_doc_count(kb.tenant_id) >= int(os.environ.get('MAX_FILE_NUM_PER_USER', 8192)):
             return get_data_error_result(
                 retmsg="Exceed the maximum file number of a free user!")
-
+        '''
         filename = duplicate_name(
             DocumentService.query,
             name=file.filename,
@@ -320,6 +323,7 @@ def upload():
             "parser_config": kb.parser_config,
             "created_by": kb.tenant_id,
             "type": filetype,
+            "use_type": use_type,
             "name": filename,
             "location": location,
             "size": len(blob),
@@ -575,4 +579,114 @@ def completion_faq():
         return response
 
     except Exception as e:
+        return server_error_response(e)
+
+'''新增api接口如下'''
+
+@manager.route('/document/<doc_id>', methods=['GET'])
+def get_document(doc_id):
+    try:
+        e, doc = DocumentService.get_by_id(doc_id)
+        if not e:
+            return get_data_error_result(retmsg="Document not found!")
+
+        return get_json_result(data=doc.to_dict())
+    except Exception as e:
+        return server_error_response(e)
+
+@manager.route('/document/image/<image_id>', methods=['GET'])
+def get_document_image(image_id):
+    try:
+        bkt, nm = image_id.split("-")
+        response = make_response(MINIO.get(bkt, nm))
+        response.headers.set('Content-Type', 'image/JPEG')
+        return response
+    except Exception as e:
+        return server_error_response(e)
+
+@manager.route('/kb/retrieval', methods=['POST'])
+@validate_request("kb_id", "question")
+def retrieval():
+    req = request.json
+    page = int(req.get("page", 1))
+    size = int(req.get("size", 30))
+    question = req["question"]
+    kb_id = req["kb_id"]
+    doc_ids = req.get("doc_ids", [])
+    similarity_threshold = float(req.get("similarity_threshold", 0.2))
+    vector_similarity_weight = float(req.get("vector_similarity_weight", 0.3))
+    top = int(req.get("top_k", 1024))
+    try:
+        e, kb = KnowledgebaseService.get_by_id(kb_id)
+        if not e:
+            return get_data_error_result(retmsg="Knowledgebase not found!")
+
+        embd_mdl = TenantLLMService.model_instance(
+            kb.tenant_id, LLMType.EMBEDDING.value, llm_name=kb.embd_id)
+
+        rerank_mdl = None
+        if req.get("rerank_id"):
+            rerank_mdl = TenantLLMService.model_instance(
+                kb.tenant_id, LLMType.RERANK.value, llm_name=req["rerank_id"])
+
+        ranks = retrievaler.retrieval(question, embd_mdl, kb.tenant_id, [kb_id], page, size,
+                                      similarity_threshold, vector_similarity_weight, top,
+                                      doc_ids, rerank_mdl=rerank_mdl)
+        for c in ranks["chunks"]:
+            if "vector" in c:
+                del c["vector"]
+
+        return get_json_result(data=ranks)
+    except Exception as e:
+        if str(e).find("not_found") > 0:
+            return get_json_result(data=False, retmsg=f'No chunk found! Check the chunk status please!',
+                                   retcode=RetCode.DATA_ERROR)
+        return server_error_response(e)
+
+@manager.route('/chunk/list', methods=['POST'])
+@validate_request("doc_id")
+def chunk_list():
+    req = request.json
+    doc_id = req["doc_id"]
+    page = int(req.get("page", 1))
+    size = int(req.get("size", 30))
+    question = req.get("keywords", "")
+    try:
+        tenant_id = DocumentService.get_tenant_id(req["doc_id"])
+        if not tenant_id:
+            return get_data_error_result(retmsg="Tenant not found!")
+        e, doc = DocumentService.get_by_id(doc_id)
+        if not e:
+            return get_data_error_result(retmsg="Document not found!")
+        query = {
+            "doc_ids": [doc_id], "page": page, "size": size, "question": question, "sort": True
+        }
+        if "available_int" in req:
+            query["available_int"] = int(req["available_int"])
+        sres = retrievaler.search(query, search.index_name(tenant_id))
+        res = {"total": sres.total, "chunks": [], "doc": doc.to_dict()}
+        for id in sres.ids:
+            d = {
+                "chunk_id": id,
+                "content_with_weight": rmSpace(sres.highlight[id]) if question and id in sres.highlight else sres.field[id].get(
+                    "content_with_weight", ""),
+                "doc_id": sres.field[id]["doc_id"],
+                "docnm_kwd": sres.field[id]["docnm_kwd"],
+                "important_kwd": sres.field[id].get("important_kwd", []),
+                "img_id": sres.field[id].get("img_id", ""),
+                "available_int": sres.field[id].get("available_int", 1),
+                "positions": sres.field[id].get("position_int", "").split("\t")
+            }
+            if len(d["positions"]) % 5 == 0:
+                poss = []
+                for i in range(0, len(d["positions"]), 5):
+                    poss.append([float(d["positions"][i]), float(d["positions"][i + 1]), float(d["positions"][i + 2]),
+                                 float(d["positions"][i + 3]), float(d["positions"][i + 4])])
+                d["positions"] = poss
+            res["chunks"].append(d)
+        return get_json_result(data=res)
+    except Exception as e:
+        if str(e).find("not_found") > 0:
+            return get_json_result(data=False, retmsg=f'No chunk found!',
+                                   retcode=RetCode.DATA_ERROR)
         return server_error_response(e)

@@ -58,7 +58,7 @@ def login():
     user = UserService.query_user(email, password)
     if user:
         response_data = user.to_json()
-        user.access_token = get_uuid()
+        user.access_token = email #get_uuid()
         login_user(user)
         user.update_time = current_timestamp(),
         user.update_date = datetime_format(datetime.now()),
@@ -72,6 +72,8 @@ def login():
 
 @manager.route('/github_callback', methods=['GET'])
 def github_callback():
+    # 关闭第三方登录逻辑
+    return redirect("/?error=closed:github not supported login")
     import requests
     res = requests.post(GITHUB_OAUTH.get("url"), data={
         "client_id": GITHUB_OAUTH.get("client_id"),
@@ -126,6 +128,8 @@ def github_callback():
 
 @manager.route('/feishu_callback', methods=['GET'])
 def feishu_callback():
+    # 关闭第三方登录逻辑
+    return redirect("/?error=closed:feishu not supported login")
     import requests
     app_access_token_res = requests.post(FEISHU_OAUTH.get("app_access_token_url"), data=json.dumps({
         "app_id": FEISHU_OAUTH.get("app_id"),
@@ -281,6 +285,7 @@ def rollback_user_registration(user_id):
 
 
 def user_register(user_id, user):
+    return
     user["id"] = user_id
     tenant = {
         "id": user_id,
@@ -331,6 +336,8 @@ def user_register(user_id, user):
 @manager.route("/register", methods=["POST"])
 @validate_request("nickname", "email", "password")
 def user_add():
+    return get_json_result(data=False, retmsg=f'private platform, please contact us!',
+                           retcode=RetCode.OPERATING_ERROR)
     req = request.json
     if UserService.query(email=req["email"]):
         return get_json_result(
