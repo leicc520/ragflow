@@ -363,7 +363,10 @@ def upload():
                 doc = doc.to_dict()
                 doc["tenant_id"] = tenant_id
                 bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
-                queue_tasks(doc, bucket, name)
+                # queue_tasks(doc, bucket, name)
+
+                # 根据use_type选择队列
+                queue_name = "user_upload_queue" if use_type != "document" else "crawler_upload_queue"
             except Exception as e:
                  return server_error_response(e)
 

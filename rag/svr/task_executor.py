@@ -30,7 +30,7 @@ from api.settings import retrievaler
 from rag.raptor import RecursiveAbstractiveProcessing4TreeOrganizedRetrieval as Raptor
 from rag.utils.minio_conn import MINIO
 from api.db.db_models import close_connection
-from rag.settings import database_logger, SVR_QUEUE_NAME
+from rag.settings import database_logger, SVR_QUEUE_NAME,SVR_QUEUE_NAME_USER,SVR_QUEUE_NAME_CRAWLER
 from rag.settings import cron_logger, DOC_MAXIMUM_SIZE
 from multiprocessing import Pool
 import numpy as np
@@ -97,9 +97,60 @@ def set_progress(task_id, from_page=0, to_page=-1,
         sys.exit()
 
 
-def collect():
+# def collect():
+#     try:
+#         payload = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME, "rag_flow_svr_task_broker", "rag_flow_svr_task_consumer")
+#         if not payload:
+#             time.sleep(1)
+#             return pd.DataFrame()
+#     except Exception as e:
+#         cron_logger.error("Get task event from queue exception:" + str(e))
+#         return pd.DataFrame()
+
+#     msg = payload.get_message()
+#     payload.ack()
+#     if not msg: return pd.DataFrame()
+
+#     if TaskService.do_cancel(msg["id"]):
+#         cron_logger.info("Task {} has been canceled.".format(msg["id"]))
+#         return pd.DataFrame()
+#     tasks = TaskService.get_tasks(msg["id"])
+#     assert tasks, "{} empty task!".format(msg["id"])
+#     tasks = pd.DataFrame(tasks)
+#     if msg.get("type", "") == "raptor":
+#         tasks["task_type"] = "raptor"
+#     return tasks
+
+def collect_user_upload():
     try:
-        payload = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME, "rag_flow_svr_task_broker", "rag_flow_svr_task_consumer")
+        payload = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME_USER, "rag_flow_svr_task_broker_user",
+                                            "rag_flow_svr_task_consumer_user")
+        if not payload:
+            time.sleep(1)
+            return pd.DataFrame()
+    except Exception as e:
+        cron_logger.error("Get task event from queue exception:" + str(e))
+        return pd.DataFrame()
+
+    msg = payload.get_message()
+    payload.ack()
+    if not msg: return pd.DataFrame()
+
+    if TaskService.do_cancel(msg["id"]):
+        cron_logger.info("Task {} has been canceled.".format(msg["id"]))
+        return pd.DataFrame()
+    tasks = TaskService.get_tasks(msg["id"])
+    assert tasks, "{} empty task!".format(msg["id"])
+    tasks = pd.DataFrame(tasks)
+    if msg.get("type", "") == "raptor":
+        tasks["task_type"] = "raptor"
+    return tasks
+
+
+def collect_crawler_upload():
+    try:
+        payload = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME_CRAWLER, "rag_flow_svr_task_broker_crawler",
+                                            "rag_flow_svr_task_consumer_crawler")
         if not payload:
             time.sleep(1)
             return pd.DataFrame()
@@ -291,9 +342,112 @@ def run_raptor(row, chat_mdl, embd_mdl, callback=None):
     return res, tk_count
 
 
+# def main():
+#     rows = collect()
+#     if len(rows) == 0:
+#         return
+
+#     for _, r in rows.iterrows():
+#         callback = partial(set_progress, r["id"], r["from_page"], r["to_page"])
+#         try:
+#             embd_mdl = LLMBundle(r["tenant_id"], LLMType.EMBEDDING, llm_name=r["embd_id"], lang=r["language"])
+#         except Exception as e:
+#             callback(-1, msg=str(e))
+#             cron_logger.error(str(e))
+#             continue
+
+#         if r.get("task_type", "") == "raptor":
+#             try:
+#                 chat_mdl = LLMBundle(r["tenant_id"], LLMType.CHAT, llm_name=r["llm_id"], lang=r["language"])
+#                 cks, tk_count = run_raptor(r, chat_mdl, embd_mdl, callback)
+#             except Exception as e:
+#                 callback(-1, msg=str(e))
+#                 cron_logger.error(str(e))
+#                 continue
+#         else:
+#             st = timer()
+#             cks = build(r)
+#             cron_logger.info("Build chunks({}): {}".format(r["name"], timer() - st))
+#             if cks is None:
+#                 continue
+#             if not cks:
+#                 callback(1., "No chunk! Done!")
+#                 continue
+#             # TODO: exception handler
+#             ## set_progress(r["did"], -1, "ERROR: ")
+#             callback(
+#                 msg="Finished slicing files(%d). Start to embedding the content." %
+#                     len(cks))
+#             st = timer()
+#             try:
+#                 tk_count = embedding(cks, embd_mdl, r["parser_config"], callback)
+#             except Exception as e:
+#                 callback(-1, "Embedding error:{}".format(str(e)))
+#                 cron_logger.error(str(e))
+#                 tk_count = 0
+#             cron_logger.info("Embedding elapsed({}): {:.2f}".format(r["name"], timer() - st))
+#             callback(msg="Finished embedding({:.2f})! Start to build index!".format(timer() - st))
+
+#         init_kb(r)
+#         chunk_count = len(set([c["_id"] for c in cks]))
+#         st = timer()
+#         es_r = ""
+#         es_bulk_size = 16
+#         for b in range(0, len(cks), es_bulk_size):
+#             es_r = ELASTICSEARCH.bulk(cks[b:b + es_bulk_size], search.index_name(r["tenant_id"]))
+#             if b % 128 == 0:
+#                 callback(prog=0.8 + 0.1 * (b + 1) / len(cks), msg="")
+
+#         cron_logger.info("Indexing elapsed({}): {:.2f}".format(r["name"], timer() - st))
+#         if es_r:
+#             callback(-1, "Index failure!")
+#             ELASTICSEARCH.deleteByQuery(
+#                 Q("match", doc_id=r["doc_id"]), idxnm=search.index_name(r["tenant_id"]))
+#             cron_logger.error(str(es_r))
+#         else:
+#             if TaskService.do_cancel(r["id"]):
+#                 ELASTICSEARCH.deleteByQuery(
+#                     Q("match", doc_id=r["doc_id"]), idxnm=search.index_name(r["tenant_id"]))
+#                 continue
+#             callback(1., "Done!")
+#             DocumentService.increment_chunk_num(
+#                 r["doc_id"], r["kb_id"], tk_count, chunk_count, 0)
+#             cron_logger.info(
+#                 "Chunk doc({}), token({}), chunks({}), elapsed:{:.2f}".format(
+#                     r["id"], tk_count, len(cks), timer() - st))
+#         call_rag_notify(r)  # 通知第三方业务处理完成
+
+# if __name__ == "__main__":
+#     peewee_logger = logging.getLogger('peewee')
+#     peewee_logger.propagate = False
+#     peewee_logger.addHandler(database_logger.handlers[0])
+#     peewee_logger.setLevel(database_logger.level)
+
+#     while True:
+#         main()
+
+
 def main():
-    rows = collect()
-    if len(rows) == 0:
+    # rows = collect()
+    # if len(rows) == 0:
+    #     return
+    rows_user_upload = collect_user_upload()
+    rows_crawler_upload = collect_crawler_upload()
+
+    if len(rows_user_upload) > 0 and len(rows_crawler_upload) > 0:
+        # 两个队列都有任务时，合并数据，优先处理 rows_user_upload
+        rows_user_upload['priority'] = 0  # 给用户上传任务设置高优先级
+        rows_crawler_upload['priority'] = 1  # 给爬虫上传任务设置低优先级
+        rows = pd.concat([rows_user_upload, rows_crawler_upload], ignore_index=True)
+        rows = rows.sort_values(by='priority')
+    elif len(rows_user_upload) > 0:
+        # 只有用户上传队列有任务时
+        rows = rows_user_upload
+    elif len(rows_crawler_upload) > 0:
+        # 只有爬虫上传队列有任务时
+        rows = rows_crawler_upload
+    else:
+        # 两个队列都没有任务时
         return
 
     for _, r in rows.iterrows():
@@ -366,6 +520,7 @@ def main():
                     r["id"], tk_count, len(cks), timer() - st))
         call_rag_notify(r)  # 通知第三方业务处理完成
 
+
 if __name__ == "__main__":
     peewee_logger = logging.getLogger('peewee')
     peewee_logger.propagate = False
@@ -374,3 +529,4 @@ if __name__ == "__main__":
 
     while True:
         main()
+
