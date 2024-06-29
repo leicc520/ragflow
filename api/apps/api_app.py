@@ -367,6 +367,8 @@ def upload():
 
                 # 根据use_type选择队列
                 queue_name = "user_upload_queue" if use_type != "document" else "crawler_upload_queue"
+                queue_tasks(doc, bucket, name, queue_name)
+
             except Exception as e:
                  return server_error_response(e)
 
