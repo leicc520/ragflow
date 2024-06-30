@@ -32,6 +32,7 @@ from api.db.services.task_service import queue_tasks, TaskService
 from api.db.services.llm_service import TenantLLMService
 from api.db.services.user_service import UserTenantService
 from api.settings import RetCode, retrievaler
+from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER
 from api.utils import get_uuid, current_timestamp, datetime_format
 from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request
 from itsdangerous import URLSafeTimedSerializer
@@ -363,12 +364,11 @@ def upload():
                 doc = doc.to_dict()
                 doc["tenant_id"] = tenant_id
                 bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
-                # queue_tasks(doc, bucket, name)
-
-                # 根据use_type选择队列
-                queue_name = "user_upload_queue" if use_type != "document" else "crawler_upload_queue"
+                # 根据use_type选择队列 document 对应 crawler
+                queue_name = SVR_QUEUE_NAME
+                if use_type == "document":
+                    queue_name = SVR_QUEUE_NAME_CRAWLER
                 queue_tasks(doc, bucket, name, queue_name)
-
             except Exception as e:
                  return server_error_response(e)
 
