@@ -47,6 +47,7 @@ class TaskService(CommonService):
             Document.name,
             Document.type,
             Document.use_type,
+            Document.use_env,
             Document.location,
             Document.size,
             Knowledgebase.tenant_id,

@@ -651,6 +651,11 @@ class Document(DataBaseModel):
         null=True,
         default="document",
         help_text="file use type")
+    use_env = CharField(
+        max_length=32,
+        null=True,
+        default="prod",
+        help_text="file use env")
     location = CharField(
         max_length=255,
         null=True,

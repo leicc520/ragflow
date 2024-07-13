@@ -271,6 +271,7 @@ def upload():
 
     kb_name = request.form.get("kb_name").strip()
     use_type = request.form.get("use_type", "document")
+    use_env = request.form.get("use_env", "prod")
     tenant_id = objs[0].tenant_id
 
     try:
@@ -325,6 +326,7 @@ def upload():
             "created_by": kb.tenant_id,
             "type": filetype,
             "use_type": use_type,
+            "use_env": use_env,
             "name": filename,
             "location": location,
             "size": len(blob),
