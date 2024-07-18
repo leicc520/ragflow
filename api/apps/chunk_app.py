@@ -279,7 +279,7 @@ def retrieval_test():
     
 
 
-@manager.route('/retrieval_test', methods=['POST'])
+@manager.route('/retrieval_test_test', methods=['POST'])
 @validate_request("kb_id", "question")
 def retrieval_test():
     req = request.json
