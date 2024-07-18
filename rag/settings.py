@@ -50,6 +50,7 @@ database_logger = getLogger("database")
 
 SVR_QUEUE_NAME = "rag_flow_svr_queue"
 SVR_QUEUE_NAME_CRAWLER = "rag_flow_svr_queue_crawler"
+SVR_QUEUR_NAME_CLINICAL = "rag_flow_svr_queue_clinical"
 
 SVR_QUEUE_RETENTION = 60*60*2
 SVR_QUEUE_MAX_LEN = 4096
