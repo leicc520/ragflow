@@ -278,42 +278,4 @@ def retrieval_test():
         return server_error_response(e)
     
 
-
-@manager.route('/retrieval_test_test', methods=['POST'])
-@validate_request("kb_id", "question")
-def retrieval_test():
-    req = request.json
-    page = int(req.get("page", 1))
-    size = int(req.get("size", 30))
-    question = req["question"]
-    kb_id = req["kb_id"]
-    doc_ids = req.get("doc_ids", [])
-    similarity_threshold = float(req.get("similarity_threshold", 0.2))
-    vector_similarity_weight = float(req.get("vector_similarity_weight", 0.3))
-    top = int(req.get("top_k", 1024))
-    try:
-        e, kb = KnowledgebaseService.get_by_id(kb_id)
-        if not e:
-            return get_data_error_result(retmsg="Knowledgebase not found!")
-
-        embd_mdl = TenantLLMService.model_instance(
-            kb.tenant_id, LLMType.EMBEDDING.value, llm_name=kb.embd_id)
-
-        rerank_mdl = None
-        if req.get("rerank_id"):
-            rerank_mdl = TenantLLMService.model_instance(
-                kb.tenant_id, LLMType.RERANK.value, llm_name=req["rerank_id"])
-
-        ranks = retrievaler.retrieval(question, embd_mdl, kb.tenant_id, [kb_id], page, size,
-                                      similarity_threshold, vector_similarity_weight, top,
-                                      doc_ids, rerank_mdl=rerank_mdl)
-        for c in ranks["chunks"]:
-            if "vector" in c:
-                del c["vector"]
-
-        return get_json_result(data=ranks)
-    except Exception as e:
-        if str(e).find("not_found") > 0:
-            return get_json_result(data=False, retmsg=f'No chunk found! Check the chunk status please!',
-                                   retcode=RetCode.DATA_ERROR)
-        return server_error_response(e)
+    
