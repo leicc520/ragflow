@@ -175,7 +175,7 @@ def list_docs():
     
 
 #增加代码
-@manager.route('/lis_docs_all', methods=['GET'])
+@manager.route('/list_docs_all', methods=['GET'])
 def list_docs_all():
     kb_id = request.args.get("kb_id")
     if not kb_id:
@@ -345,8 +345,7 @@ def run_test():
                 doc = doc.to_dict()
                 doc["tenant_id"] = tenant_id
                 bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
-                queue_name = SVR_QUEUR_NAME_CLINICAL
-                queue_tasks(doc, bucket, name,queue_name)
+                queue_tasks(doc, bucket, name)
 
         return get_json_result(data=True)
     except Exception as e:
