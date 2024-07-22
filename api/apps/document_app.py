@@ -39,6 +39,7 @@ from api.settings import RetCode
 from api.utils.api_utils import get_json_result
 from rag.utils.minio_conn import MINIO
 from api.utils.file_utils import filename_type, thumbnail
+from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER,SVR_QUEUR_NAME_CLINICAL
 
 
 @manager.route('/upload', methods=['POST'])
@@ -171,6 +172,21 @@ def list_docs():
         return get_json_result(data={"total": tol, "docs": docs})
     except Exception as e:
         return server_error_response(e)
+    
+
+#增加代码
+@manager.route('/lis_docs_all', methods=['GET'])
+def list_docs_all():
+    kb_id = request.args.get("kb_id")
+    if not kb_id:
+        return get_json_result(
+            data=False, retmsg='Lack of "KB ID"', retcode=RetCode.ARGUMENT_ERROR)
+    
+    try:
+        docs = DocumentService.get_docs_with_progress_not_1(kb_id)
+        return get_json_result(data={"docs": docs})
+    except Exception as e:
+        return server_error_response(e)
 
 
 @manager.route('/thumbnails', methods=['GET'])
@@ -270,6 +286,7 @@ def rm():
     return get_json_result(data=True)
 
 
+
 @manager.route('/run', methods=['POST'])
 @login_required
 @validate_request("doc_ids", "run")
@@ -297,6 +314,39 @@ def run():
                 doc["tenant_id"] = tenant_id
                 bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
                 queue_tasks(doc, bucket, name)
+
+        return get_json_result(data=True)
+    except Exception as e:
+        return server_error_response(e)
+    
+
+@manager.route('/run_test', methods=['POST'])
+@validate_request("doc_ids", "run")
+def run_test():
+    req = request.json
+    try:
+        for id in req["doc_ids"]:
+            info = {"run": str(req["run"]), "progress": 0}
+            if str(req["run"]) == TaskStatus.RUNNING.value:
+                info["progress_msg"] = ""
+                info["chunk_num"] = 0
+                info["token_num"] = 0
+            DocumentService.update_by_id(id, info)
+            # if str(req["run"]) == TaskStatus.CANCEL.value:
+            tenant_id = DocumentService.get_tenant_id(id)
+            if not tenant_id:
+                return get_data_error_result(retmsg="Tenant not found!")
+            ELASTICSEARCH.deleteByQuery(
+                Q("match", doc_id=id), idxnm=search.index_name(tenant_id))
+            
+            if str(req["run"]) == TaskStatus.RUNNING.value:
+                TaskService.filter_delete([Task.doc_id == id])
+                e, doc = DocumentService.get_by_id(id)
+                doc = doc.to_dict()
+                doc["tenant_id"] = tenant_id
+                bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
+                queue_name = SVR_QUEUR_NAME_CLINICAL
+                queue_tasks(doc, bucket, name,queue_name)
 
         return get_json_result(data=True)
     except Exception as e:
