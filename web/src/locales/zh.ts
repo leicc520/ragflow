@@ -65,6 +65,7 @@ export default {
       name: '名称',
       namePlaceholder: '请输入名称',
       doc: '文档',
+      unDoc: '待解析',
       searchKnowledgePlaceholder: '搜索',
     },
     knowledgeDetails: {

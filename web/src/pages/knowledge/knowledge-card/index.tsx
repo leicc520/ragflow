@@ -93,12 +93,6 @@ const KnowledgeCard = ({ item }: IProps) => {
                   {item.doc_num}
                   {t('knowledgeList.doc')}
                 </Space>
-              </span>
-            </div>
-          </div>
-          <div className={styles.bottomLeft}>
-              <FileTextOutlined className={styles.leftIcon} />
-              <span className={styles.rightText}>
                 <Space>
                   {item.un_doc_num}
                   {t('knowledgeList.unDoc')}

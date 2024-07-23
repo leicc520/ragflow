@@ -65,6 +65,7 @@ export default {
       name: 'Name',
       namePlaceholder: 'Please input name!',
       doc: 'Docs',
+      unDoc: 'UnParsed',
       searchKnowledgePlaceholder: 'Search',
     },
     knowledgeDetails: {
