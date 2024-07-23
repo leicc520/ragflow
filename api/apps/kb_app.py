@@ -32,6 +32,23 @@ from api.utils.api_utils import get_json_result
 from rag.nlp import search
 from rag.utils.es_conn import ELASTICSEARCH
 
+import requests
+from datetime import datetime
+
+
+BASE_URL = "http://rag.shanhu.club/v1/document"
+
+def list_all_docs(kb_id):
+    url = f"{BASE_URL}/list_docs_all"
+    params = {"kb_id": kb_id}
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json().get('data', {}).get('docs', [])
+    except requests.RequestException as e:
+        print(f"{datetime.now()}: Error fetching docs: {e}")
+        return []
+
 
 @manager.route('/create', methods=['post'])
 @login_required
@@ -120,6 +137,10 @@ def list_kbs():
         tenants = TenantService.get_joined_tenants_by_user_id(current_user.id)
         kbs = KnowledgebaseService.get_by_tenant_ids(
             [m["tenant_id"] for m in tenants], current_user.id, page_number, items_per_page, orderby, desc)
+        # 为每个知识库添加 un_doc_num 字段
+        for kb in kbs:
+            docs = list_all_docs(kb["id"])
+            kb["un_doc_num"] = len(docs)
         return get_json_result(data=kbs)
     except Exception as e:
         return server_error_response(e)
