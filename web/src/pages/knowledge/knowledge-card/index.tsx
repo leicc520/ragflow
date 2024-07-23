@@ -96,6 +96,16 @@ const KnowledgeCard = ({ item }: IProps) => {
               </span>
             </div>
           </div>
+          <div className={styles.bottomLeft}>
+              <FileTextOutlined className={styles.leftIcon} />
+              <span className={styles.rightText}>
+                <Space>
+                  {item.un_doc_num}
+                  {t('knowledgeList.unDoc')}
+                </Space>
+              </span>
+            </div>
+          </div>
           <div className={styles.bottom}>
             <div className={styles.bottomLeft}>
               <CalendarOutlined className={styles.leftIcon} />
