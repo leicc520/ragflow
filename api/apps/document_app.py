@@ -41,7 +41,7 @@ from rag.utils.minio_conn import MINIO
 from api.utils.file_utils import filename_type, thumbnail
 from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER,SVR_QUEUR_NAME_CLINICAL
 from io import BytesIO
-import requests
+import fitz
 
 
 @manager.route('/upload', methods=['POST'])
@@ -468,32 +468,20 @@ def get_image(image_id):
     except Exception as e:
         return server_error_response(e)
     
-def send_pdf_and_extract_toc(api_url, pdf_bytes):
-    try:
-        headers = {
-            'Content-Type': 'application/octet-stream'
-        }
-        
-        response = requests.post(api_url, headers=headers, data=pdf_bytes)
-        
-
-        if response.status_code == 200:
-            result = response.json()
-            return result.get("toc")
-        else:
-            print(f"Error: {response.status_code}, {response.text}")
-            return None
-    
-    except Exception as e:
-        print(f"Exception occurred: {e}")
-        return None
 
 
+def extract_toc_from_bytes(pdf_bytes):
+
+    document = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+    toc = document.get_toc()
+
+    return toc
 
 @manager.route('/pdf_toc', methods=['POST'])
 # @login_required
 @validate_request("doc_id")
-def pdf_doc():
+def pdf_toc():
     req = request.json
     try:
         e, doc = DocumentService.get_by_id(req["doc_id"])
@@ -508,9 +496,8 @@ def pdf_doc():
         document_data = BytesIO(response)
 
         if document_data:
-            pdf_bytes = document_data.read()  
-            api_url = "http://49.235.104.32/extract_toc"  
-            toc = send_pdf_and_extract_toc(api_url, pdf_bytes)
+            pdf_bytes = document_data
+            toc = extract_toc_from_bytes(pdf_bytes)
             
             if toc is not None:
                 return get_json_result(data=toc)
