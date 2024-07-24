@@ -40,6 +40,17 @@ from api.utils.api_utils import get_json_result
 from rag.utils.minio_conn import MINIO
 from api.utils.file_utils import filename_type, thumbnail
 from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER,SVR_QUEUR_NAME_CLINICAL
+from io import BytesIO
+import fitz
+
+
+
+def extract_toc_from_bytes(pdf_bytes):
+
+    document = fitz.open(stream=pdf_bytes, filetype="pdf")
+    toc = document.get_toc()
+
+    return toc
 
 
 @manager.route('/upload', methods=['POST'])
@@ -465,3 +476,31 @@ def get_image(image_id):
         return response
     except Exception as e:
         return server_error_response(e)
+    
+
+@manager.route('/pdf_toc', methods=['POST'])
+# @login_required
+@validate_request("doc_id")
+def pdf_doc():
+    req = request.json
+    try:
+        e, doc = DocumentService.get_by_id(req["doc_id"])
+        if not e:
+            return get_data_error_result(retmsg="Document not found!")
+        
+        bucket_name = doc.kb_id
+        object_name = doc.location
+
+        response = MINIO.get(bucket_name, object_name)
+
+        document_data = BytesIO(response)
+
+        if document_data:
+            toc = extract_toc_from_bytes(document_data)
+            
+            return get_json_result(data=toc)
+        else:
+            return get_data_error_result(retmsg="Failed to extract TOC from document.")
+    except Exception as e:
+        return server_error_response(e)
+
