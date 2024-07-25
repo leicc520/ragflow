@@ -48,6 +48,8 @@ class LayoutRecognizer(Recognizer):
                                           local_dir_use_symlinks=False)
             super().__init__(self.labels, domain, model_dir)
 
+        self.garbage_layouts = ["footer", "header", "reference"]
+
 
     def __call__(self, image_list, ocr_res, scale_factor=3,
                  thr=0.2, batch_size=16, drop=True):
@@ -106,6 +108,14 @@ class LayoutRecognizer(Recognizer):
                         lts_[
                             ii]["type"] == "header" and bxs[i]["top"] > image_list[pn].size[1] * 0.1 / scale_factor,
                     ]
+
+                    if drop and lts_[
+                            ii]["type"] in self.garbage_layouts and not any(keep_feats):
+                        if lts_[ii]["type"] not in garbages:
+                            garbages[lts_[ii]["type"]] = []
+                        garbages[lts_[ii]["type"]].append(bxs[i]["text"])
+                        bxs.pop(i)
+                        continue
 
                     bxs[i]["layoutno"] = f"{ty}-{ii}"
                     bxs[i]["layout_type"] = lts_[ii]["type"] if lts_[
