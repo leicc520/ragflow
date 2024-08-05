@@ -128,7 +128,8 @@ def tokenize_chunks(chunks, doc, eng, pdf_parser):
         d = copy.deepcopy(doc)
         if pdf_parser:
             try:
-                d["image"], poss = pdf_parser.crop(ck, need_position=True)
+                
+                _ , poss = pdf_parser.crop(ck, need_position=True)
                 add_positions(d, poss)
                 ck = pdf_parser.remove_tag(ck)
             except NotImplementedError as e:
