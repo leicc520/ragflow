@@ -539,7 +539,7 @@ class RAGFlowPdfParser:
 
 
     def _truncate_text_blocks(self):
-        max_tokens = 512
+        max_tokens = 256
         new_boxes = []
 
         for box in self.boxes:
@@ -550,9 +550,11 @@ class RAGFlowPdfParser:
                     start_idx = i * max_tokens
                     end_idx = min((i + 1) * max_tokens, len(tokens))
                     truncated_text = " ".join(tokens[start_idx:end_idx])
-                    
+
                     new_box = deepcopy(box)
                     new_box["text"] = truncated_text
+
+                    new_box["layoutno"] = f"{box['layoutno']}-{i}"
 
                     new_boxes.append(new_box)
             else:
