@@ -19,7 +19,6 @@ from rag.nlp import rag_tokenizer
 from copy import deepcopy
 from huggingface_hub import snapshot_download
 
-from transformers import AutoTokenizer
 
 logging.getLogger("pdfminer").setLevel(logging.WARNING)
 
@@ -53,7 +52,6 @@ class RAGFlowPdfParser:
 
         self.page_from = 0
 
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
         """
         If you have trouble downloading HuggingFace models, -_^ this might help!!
@@ -542,20 +540,25 @@ class RAGFlowPdfParser:
 
     def _truncate_text_blocks(self):
         max_tokens = 512
-        truncated_boxes = []
+        new_boxes = []
 
         for box in self.boxes:
-            text = box["text"]
-            tokens = self.tokenizer.encode(text, add_special_tokens=False)
-
+            tokens = box["text"].split()
             if len(tokens) > max_tokens:
-                # Truncate the text to fit within the token limit
-                truncated_text = self.tokenizer.decode(tokens[:max_tokens], skip_special_tokens=True)
-                box["text"] = truncated_text
+                num_splits = (len(tokens) + max_tokens - 1) // max_tokens 
+                for i in range(num_splits):
+                    start_idx = i * max_tokens
+                    end_idx = min((i + 1) * max_tokens, len(tokens))
+                    truncated_text = " ".join(tokens[start_idx:end_idx])
+                    
+                    new_box = deepcopy(box)
+                    new_box["text"] = truncated_text
 
-            truncated_boxes.append(box)
+                    new_boxes.append(new_box)
+            else:
+                new_boxes.append(box)
 
-        self.boxes = truncated_boxes
+        self.boxes = new_boxes
 
     def _filter_forpages(self):
         if not self.boxes:
