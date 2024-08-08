@@ -19,6 +19,8 @@ from rag.nlp import rag_tokenizer
 from copy import deepcopy
 from huggingface_hub import snapshot_download
 
+from transformers import AutoTokenizer
+
 logging.getLogger("pdfminer").setLevel(logging.WARNING)
 
 
@@ -47,8 +49,12 @@ class RAGFlowPdfParser:
                 local_dir_use_symlinks=False)
             self.updown_cnt_mdl.load_model(os.path.join(
                 model_dir, "updown_concat_xgb.model"))
+            
 
         self.page_from = 0
+
+        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+
         """
         If you have trouble downloading HuggingFace models, -_^ this might help!!
 
@@ -532,6 +538,24 @@ class RAGFlowPdfParser:
             boxes.append(t)
 
         self.boxes = Recognizer.sort_Y_firstly(boxes, 0)
+
+
+    def _truncate_text_blocks(self):
+        max_tokens = 512
+        truncated_boxes = []
+
+        for box in self.boxes:
+            text = box["text"]
+            tokens = self.tokenizer.encode(text, add_special_tokens=False)
+
+            if len(tokens) > max_tokens:
+                # Truncate the text to fit within the token limit
+                truncated_text = self.tokenizer.decode(tokens[:max_tokens], skip_special_tokens=True)
+                box["text"] = truncated_text
+
+            truncated_boxes.append(box)
+
+        self.boxes = truncated_boxes
 
     def _filter_forpages(self):
         if not self.boxes:
