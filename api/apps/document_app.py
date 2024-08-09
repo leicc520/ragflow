@@ -41,6 +41,8 @@ from rag.utils.minio_conn import MINIO
 from api.utils.file_utils import filename_type, thumbnail
 from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER,SVR_QUEUR_NAME_CLINICAL
 
+from datetime import datetime
+
 
 @manager.route('/upload', methods=['POST'])
 @login_required
@@ -153,6 +155,14 @@ def create():
         return server_error_response(e)
 
 
+parser_mode_map = {
+    "v1": "2024-06-19 23:00:00",
+    "v2": "2024-07-23 23:00:00",
+    "v3": "2024-08-08 23:00:00"
+}
+
+
+
 @manager.route('/list', methods=['GET'])
 @login_required
 def list_docs():
@@ -169,6 +179,25 @@ def list_docs():
     try:
         docs, tol = DocumentService.get_by_kb_id(
             kb_id, page_number, items_per_page, orderby, desc, keywords)
+        
+        cutoff_dates = [(mode, datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")) 
+                        for mode, date_str in sorted(parser_mode_map.items(), key=lambda x: x[1])]
+
+        for doc in docs:
+            if doc.get("type") == "pdf" and doc.get("parser_id") == "naive":
+                update_date = datetime.strptime(doc["update_date"], "%Y-%m-%d %H:%M:%S")
+                for i in range(len(cutoff_dates) - 1):
+                    current_mode, current_cutoff = cutoff_dates[i]
+                    next_mode, next_cutoff = cutoff_dates[i + 1]
+                    
+                    if current_cutoff <= update_date < next_cutoff:
+                        doc["parser_mode"] = current_mode
+                        break
+                
+                # 如果 update_date 大于或等于最后一个 cutoff_date，则设置为最后一个模式
+                if update_date >= cutoff_dates[-1][1]:
+                    doc["parser_mode"] = cutoff_dates[-1][0]
+        
         return get_json_result(data={"total": tol, "docs": docs})
     except Exception as e:
         return server_error_response(e)
