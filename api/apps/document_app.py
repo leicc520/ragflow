@@ -185,7 +185,7 @@ def list_docs():
 
         for doc in docs:
             if doc.get("type") == "pdf" and doc.get("parser_id") == "naive":
-                update_date = datetime.strptime(doc["update_date"], "%Y-%m-%d %H:%M:%S")
+                update_date =doc["update_date"]
                 for i in range(len(cutoff_dates) - 1):
                     current_mode, current_cutoff = cutoff_dates[i]
                     next_mode, next_cutoff = cutoff_dates[i + 1]
