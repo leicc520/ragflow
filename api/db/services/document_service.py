@@ -50,8 +50,10 @@ class DocumentService(CommonService):
             docs = cls.model.select().where(cls.model.kb_id == kb_id)
         count = docs.count()
         #让未解析的文档排在前面
-        docs = docs.order_by(cls.model.progress.asc())
-        docs = docs.order_by(cls.model.create_time.desc())
+        docs = docs.order_by(
+            cls.model.progress.asc(),
+            cls.model.create_time.desc()
+        )
         docs = docs.paginate(page_number, items_per_page)
 
         return list(docs.dicts()), count
