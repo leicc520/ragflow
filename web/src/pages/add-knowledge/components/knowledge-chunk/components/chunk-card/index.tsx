@@ -48,19 +48,6 @@ const ChunkCard = ({
     clickChunkCard(item.chunk_id);
   };
 
-  /*
-    {item.img_id && (
-      <Popover
-        placement="right"
-        content={
-          <Image id={item.img_id} className={styles.imagePreview}></Image>
-        }
-      >
-        <Image id={item.img_id} className={styles.image}></Image>
-      </Popover>
-    )}
-   */
-
   return (
     <Card
       className={classNames(styles.chunkCard, {
@@ -69,7 +56,16 @@ const ChunkCard = ({
     >
       <Flex gap={'middle'} justify={'space-between'}>
         <Checkbox onChange={handleCheck} checked={checked}></Checkbox>
-        <div style="display:none">暂未图片预览</div>
+        {item.img_id && (
+          <Popover
+            placement="right"
+            content={
+              <Image id={item.img_id} className={styles.imagePreview}></Image>
+            }
+          >
+            <Image id={item.img_id} className={styles.image}></Image>
+          </Popover>
+        )}
         <section
           onDoubleClick={handleContentDoubleClick}
           onClick={handleContentClick}
