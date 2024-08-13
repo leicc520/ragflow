@@ -317,21 +317,9 @@ class DocumentService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_kb_doc_count(cls, kb_id):
-        return len(cls.model.select(cls.model.id).where(
-            cls.model.kb_id == kb_id).dicts())
-    
-    #增加代码
-    @classmethod
-    @DB.connection_context()
-    def get_docs_with_progress_not_1(cls, kb_id):
-        fields = [cls.model.id]
-        docs = cls.model.select(*fields) \
-            .where(
-                cls.model.kb_id == kb_id,
-                cls.model.progress != 1
-            )
-        return list(docs.dicts())
-
+        docs = cls.model.select(cls.model.id).where(
+            cls.model.kb_id == kb_id).count()
+        return docs if docs > 0 else 0
 
 def queue_raptor_tasks(doc):
     def new_task():

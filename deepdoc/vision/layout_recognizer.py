@@ -50,7 +50,6 @@ class LayoutRecognizer(Recognizer):
 
         self.garbage_layouts = ["footer", "header", "reference"]
 
-
     def __call__(self, image_list, ocr_res, scale_factor=3,
                  thr=0.2, batch_size=16, drop=True):
         def __is_garbage(b):
@@ -108,7 +107,6 @@ class LayoutRecognizer(Recognizer):
                         lts_[
                             ii]["type"] == "header" and bxs[i]["top"] > image_list[pn].size[1] * 0.1 / scale_factor,
                     ]
-
                     if drop and lts_[
                             ii]["type"] in self.garbage_layouts and not any(keep_feats):
                         if lts_[ii]["type"] not in garbages:

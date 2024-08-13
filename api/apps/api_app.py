@@ -744,49 +744,15 @@ def pdf_toc():
         return server_error_response(e)
 
 
-@manager.route('/check_file_exists', methods=['POST'])
+@manager.route('/file_exists', methods=['POST'])
 @validate_request("kb_id")
+@validate_request("file_name")
 def check_file_exists():
     kb_id = request.form.get("kb_id")
-    if not kb_id:
+    file_name = request.form.get("file_name")
+    if MINIO.obj_exist(kb_id, file_name):
         return get_json_result(
-            data=False, retmsg='Lack of "KB ID"', retcode=RetCode.ARGUMENT_ERROR)
-    if 'file' not in request.files:
+            data=False, retmsg=f"File '{file_name}' already exists!", retcode=RetCode.ARGUMENT_ERROR)
+    else:
         return get_json_result(
-            data=False, retmsg='No file part!', retcode=RetCode.ARGUMENT_ERROR)
-
-    file_objs = request.files.getlist('file')
-    for file_obj in file_objs:
-        if file_obj.filename == '':
-            return get_json_result(
-                data=False, retmsg='No file selected!', retcode=RetCode.ARGUMENT_ERROR)
-
-    e, kb = KnowledgebaseService.get_by_id(kb_id)
-    if not e:
-        raise LookupError("Can't find this knowledgebase!")
-
-    err = []
-    for file in file_objs:
-        try:
-            filename = duplicate_name(
-                DocumentService.query,
-                name=file.filename,
-                kb_id=kb.id)
-            
-            location = filename
-            if MINIO.obj_exist(kb_id, location):
-                return get_json_result(
-                    data=False, retmsg=f"File '{filename}' already exists!", retcode=RetCode.ARGUMENT_ERROR)
-            else:
-                return get_json_result(
-                    data=False, retmsg=f"File '{filename}' does not exist!", retcode=RetCode.ARGUMENT_ERROR)
-            
-        except Exception as e:
-            err.append(file.filename + ": " + str(e))
-    
-    if err:
-        return get_json_result(
-            data=False, retmsg="\n".join(err), retcode=RetCode.SERVER_ERROR)
-    
-    return get_json_result(data=True)
-
+            data=False, retmsg=f"File '{file_name}' does not exist!", retcode=RetCode.ARGUMENT_ERROR)
