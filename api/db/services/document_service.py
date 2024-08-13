@@ -40,6 +40,16 @@ class DocumentService(CommonService):
 
     @classmethod
     @DB.connection_context()
+    def get_waiting_progress(cls, kb_id):
+        docs = cls.model.select().where(
+            (cls.model.kb_id == kb_id),
+            (cls.model.progress < 1),
+        )
+        count = docs.count()
+        return count
+
+    @classmethod
+    @DB.connection_context()
     def get_by_kb_id_news(cls, kb_id, page_number, items_per_page, keywords):
         if keywords:
             docs = cls.model.select().where(

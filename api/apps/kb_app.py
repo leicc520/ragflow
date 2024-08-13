@@ -35,21 +35,6 @@ from rag.utils.es_conn import ELASTICSEARCH
 import requests
 from datetime import datetime
 
-
-BASE_URL = "http://rag.shanhu.club/v1/document"
-
-def list_all_docs(kb_id):
-    url = f"{BASE_URL}/list_docs_all"
-    params = {"kb_id": kb_id}
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return response.json().get('data', {}).get('docs', [])
-    except requests.RequestException as e:
-        print(f"{datetime.now()}: Error fetching docs: {e}")
-        return []
-
-
 @manager.route('/create', methods=['post'])
 @login_required
 @validate_request("name")
@@ -139,8 +124,8 @@ def list_kbs():
             [m["tenant_id"] for m in tenants], current_user.id, page_number, items_per_page, orderby, desc)
         # 为每个知识库添加 un_doc_num 字段
         for kb in kbs:
-            docs = list_all_docs(kb["id"])
-            kb["un_doc_num"] = len(docs)
+            count = DocumentService.get_waiting_progress(kb["id"])
+            kb["un_doc_num"] = count #获取未解析的数量
         return get_json_result(data=kbs)
     except Exception as e:
         return server_error_response(e)
