@@ -136,6 +136,11 @@ const KnowledgeFile = () => {
       ),
     },
     {
+      title: '解析版本',
+      key: 'version',
+      dataIndex: 'version',
+    },
+    {
       title: t('parsingStatus'),
       dataIndex: 'run',
       key: 'run',

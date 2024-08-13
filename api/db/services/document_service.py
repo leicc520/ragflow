@@ -40,6 +40,24 @@ class DocumentService(CommonService):
 
     @classmethod
     @DB.connection_context()
+    def get_by_kb_id_news(cls, kb_id, page_number, items_per_page, keywords):
+        if keywords:
+            docs = cls.model.select().where(
+                (cls.model.kb_id == kb_id),
+                (fn.LOWER(cls.model.name).contains(keywords.lower()))
+            )
+        else:
+            docs = cls.model.select().where(cls.model.kb_id == kb_id)
+        count = docs.count()
+        #让未解析的文档排在前面
+        docs = docs.order_by(cls.model.progress.asc())
+        docs = docs.order_by(cls.model.create_time.desc())
+        docs = docs.paginate(page_number, items_per_page)
+
+        return list(docs.dicts()), count
+
+    @classmethod
+    @DB.connection_context()
     def get_by_kb_id(cls, kb_id, page_number, items_per_page,
                      orderby, desc, keywords):
         if keywords:

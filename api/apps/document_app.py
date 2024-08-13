@@ -171,14 +171,11 @@ def list_docs():
         return get_json_result(
             data=False, retmsg='Lack of "KB ID"', retcode=RetCode.ARGUMENT_ERROR)
     keywords = request.args.get("keywords", "")
-
     page_number = int(request.args.get("page", 1))
     items_per_page = int(request.args.get("page_size", 15))
-    orderby = request.args.get("orderby", "create_time")
-    desc = request.args.get("desc", True)
     try:
-        docs, tol = DocumentService.get_by_kb_id(
-            kb_id, page_number, items_per_page, orderby, desc, keywords)
+        docs, tol = DocumentService.get_by_kb_id_news(
+            kb_id, page_number, items_per_page, keywords)
         
         cutoff_dates = [(mode, datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")) 
                         for mode, date_str in sorted(parser_mode_map.items(), key=lambda x: x[1])]

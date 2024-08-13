@@ -625,7 +625,7 @@ class Knowledgebase(DataBaseModel):
 class Document(DataBaseModel):
     id = CharField(max_length=32, primary_key=True)
     thumbnail = TextField(null=True, help_text="thumbnail base64 string")
-    kb_id = CharField(max_length=256, null=False, index=True)
+    kb_id = CharField(max_length=64, null=False, index=True)
     parser_id = CharField(
         max_length=32,
         null=False,
@@ -680,7 +680,10 @@ class Document(DataBaseModel):
         null=True,
         help_text="is it validate(0: wasted，1: validate)",
         default="1")
-
+    version = CharField(
+        max_length=15,
+        null=True,
+        help_text="add parser version")
     class Meta:
         db_table = "document"
 
