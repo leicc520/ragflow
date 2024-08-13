@@ -69,7 +69,7 @@ const ChunkCard = ({
     >
       <Flex gap={'middle'} justify={'space-between'}>
         <Checkbox onChange={handleCheck} checked={checked}></Checkbox>
-        <!--// TODO: add edit button -->
+        <div style="display:none">暂未图片预览</div>
         <section
           onDoubleClick={handleContentDoubleClick}
           onClick={handleContentClick}
