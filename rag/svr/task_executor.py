@@ -192,9 +192,9 @@ def build(row):
             d["image"].save(output_buffer, format='JPEG')
 
         st = timer()
-        MINIO.put(row["kb_id"], d["_id"], output_buffer.getvalue())
+        #MINIO.put(row["kb_id"], d["_id"], output_buffer.getvalue())
+        #d["img_id"] = "{}-{}".format(row["kb_id"], d["_id"])
         el += timer() - st
-        d["img_id"] = "{}-{}".format(row["kb_id"], d["_id"])
         del d["image"]
         docs.append(d)
     cron_logger.info("MINIO PUT({}):{}".format(row["name"], el))
