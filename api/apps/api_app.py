@@ -32,7 +32,7 @@ from api.db.services.task_service import queue_tasks, TaskService
 from api.db.services.llm_service import TenantLLMService
 from api.db.services.user_service import UserTenantService
 from api.settings import RetCode, retrievaler
-from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER,SVR_QUEUR_NAME_CLINICAL
+from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER, SVR_QUEUE_NAME_CLINICAL
 from api.utils import get_uuid, current_timestamp, datetime_format
 from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request
 from itsdangerous import URLSafeTimedSerializer
@@ -374,7 +374,7 @@ def upload():
                 if use_type == "document":
                     queue_name = SVR_QUEUE_NAME_CRAWLER
                 elif use_type == "clinical":
-                    queue_name = SVR_QUEUR_NAME_CLINICAL
+                    queue_name = SVR_QUEUE_NAME_CLINICAL
                 queue_tasks(doc, bucket, name, queue_name)
             except Exception as e:
                  return server_error_response(e)

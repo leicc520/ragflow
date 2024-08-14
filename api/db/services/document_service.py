@@ -21,9 +21,8 @@ from peewee import fn
 from api.db.db_utils import bulk_insert_into_db
 from api.settings import stat_logger
 from api.utils import current_timestamp, get_format_time, get_uuid
-from rag.settings import SVR_QUEUE_NAME
+from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER, SVR_QUEUE_NAME_CLINICAL
 from rag.utils.es_conn import ELASTICSEARCH
-from rag.utils.minio_conn import MINIO
 from rag.nlp import search
 
 from api.db import FileType, TaskStatus
@@ -34,6 +33,7 @@ from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db import StatusEnum
 from rag.utils.redis_conn import REDIS_CONN
 
+TaskProgressTime = "task:progress:time"
 
 class DocumentService(CommonService):
     model = Document
@@ -90,15 +90,14 @@ class DocumentService(CommonService):
         return list(docs.dicts()), count
     @classmethod
     @DB.connection_context()
-    def get_list_by_kb_id(cls, kb_id):
-        docs = cls.model.select().where((
-            cls.model.kb_id == kb_id,
-            cls.model.chunk_num > 0,
-            cls.model.update_date >= '2024-08-07 10:00:00',
-        ))
+    def get_list_by_kb_id(cls, kb_id, page_number, items_per_page):
+        docs = cls.model.select().where(
+            (cls.model.kb_id == kb_id),
+            (cls.model.chunk_num > 0),
+            (cls.model.update_date >= '2024-08-07 10:00:00'),
+        )
         docs = docs.order_by(cls.model.update_date.desc())
-
-        docs = docs.paginate(0, 9999999)
+        docs = docs.paginate(page_number, items_per_page)
         return list(docs.dicts())
 
     @classmethod
@@ -154,10 +153,11 @@ class DocumentService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def get_unfinished_docs(cls):
-        fields = [cls.model.id, cls.model.process_begin_at, cls.model.parser_config, cls.model.progress_msg]
+    def get_unfinished_docs(cls, task_docs_ids):
+        fields = [cls.model.id, cls.model.use_type, cls.model.process_begin_at, cls.model.parser_config, cls.model.progress_msg]
         docs = cls.model.select(*fields) \
             .where(
+                cls.model.id.in_(task_docs_ids),
                 cls.model.status == StatusEnum.VALID.value,
                 ~(cls.model.type == FileType.VIRTUAL.value),
                 cls.model.progress < 1,
@@ -282,25 +282,37 @@ class DocumentService(CommonService):
     @classmethod
     @DB.connection_context()
     def update_progress(cls):
-        docs = cls.get_unfinished_docs()
+        now_time = current_timestamp()
+        lst_time = REDIS_CONN.get(TaskProgressTime)
+        if lst_time is None:
+            lst_time = now_time - 3600 * 1000
+        REDIS_CONN.set(TaskProgressTime, str(now_time))
+        # 获取当前时间处理的需要同步的任务文档
+        task_ctx = Task.select(Task.doc_id).distinct() \
+            .where(Task.progress == 1, Task.update_time > lst_time).limit(10000).tuples()
+        task_docs_ids = [docId[0] for docId in task_ctx]
+        if not task_docs_ids or len(task_docs_ids) == 0:
+            return
+        # 通过文档获取需要处理的数据
+        docs = cls.get_unfinished_docs(task_docs_ids)
         for d in docs:
             try:
-                tsks = Task.query(doc_id=d["id"], order_by=Task.create_time)
-                if not tsks:
+                tasks = Task.query(doc_id=d["id"], order_by=Task.create_time)
+                if not tasks:
                     continue
                 msg = []
                 prg = 0
                 finished = True
                 bad = 0
                 status = TaskStatus.RUNNING.value
-                for t in tsks:
+                for t in tasks:
                     if 0 <= t.progress < 1:
                         finished = False
                     prg += t.progress if t.progress >= 0 else 0
                     msg.append(t.progress_msg)
                     if t.progress == -1:
                         bad += 1
-                prg /= len(tsks)
+                prg /= len(tasks)
                 if finished and bad:
                     prg = -1
                     status = TaskStatus.FAIL.value
@@ -346,5 +358,12 @@ def queue_raptor_tasks(doc):
 
     task = new_task()
     bulk_insert_into_db(Task, [task], True)
+
+    queue_name = SVR_QUEUE_NAME
+    if doc["use_type"] == "document":
+        queue_name = SVR_QUEUE_NAME_CRAWLER
+    elif doc["use_type"] == "clinical":
+        queue_name = SVR_QUEUE_NAME_CLINICAL
+
     task["type"] = "raptor"
     assert REDIS_CONN.queue_product(SVR_QUEUE_NAME, message=task), "Can't access Redis. Please check the Redis' status."

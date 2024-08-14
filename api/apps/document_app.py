@@ -39,7 +39,7 @@ from api.settings import RetCode
 from api.utils.api_utils import get_json_result
 from rag.utils.minio_conn import MINIO
 from api.utils.file_utils import filename_type, thumbnail
-from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER,SVR_QUEUR_NAME_CLINICAL
+from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER,SVR_QUEUE_NAME_CLINICAL
 
 from datetime import datetime
 

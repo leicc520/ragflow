@@ -440,5 +440,7 @@ class Dealer:
         es_res = self.es.search(s, idxnm=index_name(tenant_id), timeout="600s", src=fields)
         res = []
         for index, chunk in enumerate(es_res['hits']['hits']):
-            res.append({fld: chunk['_source'].get(fld) for fld in fields})
+            item = {fld: chunk['_source'].get(fld) for fld in fields}
+            item["chunk_id"] =   chunk['_id']
+            res.append(item)
         return res

@@ -123,13 +123,12 @@ def tokenize_chunks(chunks, doc, eng, pdf_parser):
     res = []
     # wrap up as es documents
     for ck in chunks:
-        if len(ck.strip()) == 0:continue
-        print("--", ck)
+        if len(ck.strip()) == 0:
+            continue
         d = copy.deepcopy(doc)
         if pdf_parser:
             try:
-                
-                _ , poss = pdf_parser.crop(ck, need_position=True)
+                _, poss = pdf_parser.crop(ck, need_position=True)
                 add_positions(d, poss)
                 ck = pdf_parser.remove_tag(ck)
             except NotImplementedError as e:

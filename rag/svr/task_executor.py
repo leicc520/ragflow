@@ -30,7 +30,7 @@ from api.settings import retrievaler
 from rag.raptor import RecursiveAbstractiveProcessing4TreeOrganizedRetrieval as Raptor
 from rag.utils.minio_conn import MINIO
 from api.db.db_models import close_connection
-from rag.settings import database_logger, SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER, SVR_QUEUR_NAME_CLINICAL, SVR_CONSUMER_NAME, SVR_CONSUMER_GROUP_NAME
+from rag.settings import database_logger, SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER, SVR_QUEUE_NAME_CLINICAL, SVR_CONSUMER_NAME, SVR_CONSUMER_GROUP_NAME
 from rag.settings import cron_logger, DOC_MAXIMUM_SIZE
 from multiprocessing import Pool
 import numpy as np
@@ -375,7 +375,7 @@ if __name__ == "__main__":
         queue_name = SVR_QUEUE_NAME_CRAWLER
 
     elif len(sys.argv) > 1 and sys.argv[1] == "clinical":
-        queue_name = SVR_QUEUR_NAME_CLINICAL
+        queue_name = SVR_QUEUE_NAME_CLINICAL
 
     while True:
         main(queue_name)
