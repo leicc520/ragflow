@@ -13,12 +13,8 @@ from rag.utils.minio_conn import MINIO
 def main():
     kb_id = "e883ad1e2ee911efb7fa5254002a1a65"
     tenant_id = "be0609562e4e11ef936c525400c442a4"
-    MINIO.rm(kb_id, "009a0eab38f9258c38286ff424652f39")
-    return
     docs = DocumentService().get_list_by_kb_id(kb_id, 0, 50000)
-    print(docs)
     for doc in docs:
-        print(doc)
         res = retrievaler.chunk_list(doc["id"], tenant_id)
         if res is None:
             continue
