@@ -13,7 +13,7 @@ from rag.utils.minio_conn import MINIO
 def main():
     kb_id = "e883ad1e2ee911efb7fa5254002a1a65"
     tenant_id = "be0609562e4e11ef936c525400c442a4"
-    MINIO.rm(kb_id, "0089b00d40eaa9622fe3aca2157b2bc1")
+    MINIO.rm(kb_id, "009a0eab38f9258c38286ff424652f39")
     return
     docs = DocumentService().get_list_by_kb_id(kb_id, 0, 50000)
     print(docs)
@@ -26,5 +26,4 @@ def main():
             MINIO.rm(kb_id, loc["chunk_id"])
 
 if __name__ == "__main__":
-
-    DocumentService.update_progress()
+    main()
