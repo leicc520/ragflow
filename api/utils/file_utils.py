@@ -170,6 +170,7 @@ def filename_type(filename):
 
 
 def thumbnail(filename, blob):
+    return ""  #去掉缩略图
     filename = filename.lower()
     if re.match(r".*\.pdf$", filename):
         pdf = pdfplumber.open(BytesIO(blob))

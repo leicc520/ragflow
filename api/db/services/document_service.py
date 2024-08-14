@@ -88,6 +88,18 @@ class DocumentService(CommonService):
         docs = docs.paginate(page_number, items_per_page)
 
         return list(docs.dicts()), count
+    @classmethod
+    @DB.connection_context()
+    def get_list_by_kb_id(cls, kb_id):
+        docs = cls.model.select().where((
+            cls.model.kb_id == kb_id,
+            cls.model.chunk_num > 0,
+            cls.model.update_date >= '2024-08-07 10:00:00',
+        ))
+        docs = docs.order_by(cls.model.update_date.desc())
+
+        docs = docs.paginate(0, 9999999)
+        return list(docs.dicts())
 
     @classmethod
     @DB.connection_context()

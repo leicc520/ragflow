@@ -174,6 +174,7 @@ def list_docs():
 @manager.route('/thumbnails', methods=['GET'])
 @login_required
 def thumbnails():
+    return
     doc_ids = request.args.get("doc_ids").split(",")
     if not doc_ids:
         return get_json_result(
@@ -440,6 +441,7 @@ def change_parser():
 @manager.route('/image/<image_id>', methods=['GET'])
 # @login_required
 def get_image(image_id):
+    return
     try:
         bkt, nm = image_id.split("-")
         response = flask.make_response(MINIO.get(bkt, nm))
