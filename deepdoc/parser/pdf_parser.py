@@ -25,7 +25,7 @@ import numpy as np
 from timeit import default_timer as timer
 from pypdf import PdfReader as pdf2_read
 
-from api.utils.file_utils import get_project_base_directory
+from api.utils.file_utils import get_project_base_directory, sentence_tokenize_merge
 from deepdoc.vision import OCR, Recognizer, LayoutRecognizer, TableStructureRecognizer
 from rag.nlp import rag_tokenizer
 from copy import deepcopy
@@ -436,7 +436,7 @@ class RAGFlowPdfParser:
             bxs.pop(i + 1)
         self.boxes = bxs
 
-    def _concat_downward(self, concat_between_pages=True):
+    def _concat_downward(self, chunk_token_num=64, concat_between_pages=True):
         # count boxes in the same row as a feature
         for i in range(len(self.boxes)):
             mh = self.mean_height[self.boxes[i]["page_number"] - 1]
@@ -522,30 +522,7 @@ class RAGFlowPdfParser:
                 blocks.append(chunks)
 
         # concat within each block
-        boxes = []
-        for b in blocks:
-            if len(b) == 1:
-                boxes.append(b[0])
-                continue
-            t = b[0]
-            for c in b[1:]:
-                t["text"] = t["text"].strip()
-                c["text"] = c["text"].strip()
-                if not c["text"]:
-                    continue
-                if t["text"] and re.match(
-                        r"[0-9\.a-zA-Z]+$", t["text"][-1] + c["text"][-1]):
-                    t["text"] += " "
-                t["text"] += c["text"]
-                t["x0"] = min(t["x0"], c["x0"])
-                t["x1"] = max(t["x1"], c["x1"])
-                t["page_number"] = min(t["page_number"], c["page_number"])
-                t["bottom"] = c["bottom"]
-                if not t["layout_type"] \
-                        and c["layout_type"]:
-                    t["layout_type"] = c["layout_type"]
-            boxes.append(t)
-
+        boxes = sentence_tokenize_merge(blocks, chunk_token_num)
         self.boxes = Recognizer.sort_Y_firstly(boxes, 0)
 
     def _filter_forpages(self):

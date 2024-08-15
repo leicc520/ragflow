@@ -29,6 +29,52 @@ from api.db import FileType
 PROJECT_BASE = os.getenv("RAG_PROJECT_BASE") or os.getenv("RAG_DEPLOY_BASE")
 RAG_BASE = os.getenv("RAG_BASE")
 
+#按统计数量分割pdf文件
+def sentence_tokenize_merge(blocks, max_len=128):
+    boxes = []
+    for b in blocks:
+        nb = len(b)
+        if nb == 1:
+            boxes.append(b[0])
+            continue
+        t = b[0]
+        for c in b[1:]:
+            t["text"] = t["text"].strip()
+            c["text"] = c["text"].strip()
+            if not c["text"]:
+                continue
+            if t["text"] and re.match(
+                    r"[0-9\.a-zA-Z]+$", t["text"][-1] + c["text"][-1]):
+                t["text"] += " "
+            t["x0"] = min(t["x0"], c["x0"])
+            t["x1"] = max(t["x1"], c["x1"])
+            t["page_number"] = min(t["page_number"], c["page_number"])
+            t["bottom"] = c["bottom"]
+            if not t["layout_type"] \
+                    and c["layout_type"]:
+                t["layout_type"] = c["layout_type"]
+            #判定分片是否大于最多允许字符
+            nb -= 1
+            if count_words(t["text"]+c["text"]) >= max_len:
+                index = max(c["text"].rfind("."), c["text"].rfind("。"))
+                if index > 0 and nb >= 3:
+                    t["text"] += c["text"][0:index+1]
+                    boxes.append(t)
+                    c["text"] = c["text"][index+1:]
+                    t = c #重新初始化c继续后续拼接逻辑
+                    continue
+            t["text"] += c["text"]
+        boxes.append(t)
+    return boxes
+
+#统计字符串的长度
+def count_words(sentence):
+    if re.search(r'[\u4e00-\u9fff]', sentence) is not None:
+        return len(sentence)
+    # 移除句子中的所有非单词字符，并将连续的单词分隔符合并为一个
+    pattern = r'\b\w+\b'
+    words = re.findall(pattern, sentence.lower())
+    return len(words)
 
 def get_project_base_directory(*args):
     global PROJECT_BASE

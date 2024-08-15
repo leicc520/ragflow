@@ -68,7 +68,7 @@ class Docx(DocxParser):
 
 
 class Pdf(PdfParser):
-    def __call__(self, filename, binary=None, from_page=0,
+    def __call__(self, filename, binary=None, chunk_token_num=256, from_page=0,
                  to_page=100000, zoomin=3, callback=None):
         start = timer()
         callback(msg="OCR is running...")
@@ -91,7 +91,7 @@ class Pdf(PdfParser):
         callback(0.67, "Text merging finished")
         tbls = self._extract_table_figure(True, zoomin, True, True)
         #self._naive_vertical_merge()
-        self._concat_downward()
+        self._concat_downward(chunk_token_num)
         #self._filter_forpages()
 
         cron_logger.info("layouts: {}".format(timer() - start))
@@ -127,9 +127,10 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
         callback(0.8, "Finish parsing.")
 
     elif re.search(r"\.pdf$", filename, re.IGNORECASE):
+        chunk_token_num = parser_config.get("chunk_token_num", 128)
         pdf_parser = Pdf(
         ) if parser_config.get("layout_recognize", True) else PlainParser()
-        sections, tbls = pdf_parser(filename if not binary else binary,
+        sections, tbls = pdf_parser(filename if not binary else binary, chunk_token_num=chunk_token_num,
                                     from_page=from_page, to_page=to_page, callback=callback)
         res = tokenize_table(tbls, doc, eng)
 

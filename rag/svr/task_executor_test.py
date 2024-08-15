@@ -296,21 +296,18 @@ def main():
     doc = Document.select().where(Document.id == "cc8d0c60595811ef9efe525400a5affd").get()
     r = doc.to_dict()
     rb_dict = kb.to_dict()
-    r["from_page"] = 1
-    r["to_page"] = 3
+    r["from_page"] = 7
+    r["to_page"] = 9
     r["doc_id"] = r["id"]
     r = {**rb_dict, **r}
 
     cks = build(r)
     print(cks)
 
-if __name__ == "__main__":
-    down = {"text":"odifying protein (RAMP;Pioszak and Hay, 2020)。"}
-    print(down.get("text", "").strip()[-1])
-    if down.get("text", "").strip()[-1] in [".", "。"]:
-        print("match")
-    else:
-        print("not match")
 
+# 设置段落 + 句子的最长长度
+
+
+if __name__ == "__main__":
     main()
 
