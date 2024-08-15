@@ -30,3 +30,7 @@ docker/ragflow-logs/
 /flask_session
 /logs
 rag/res/deepdoc
+
+*.yaml
+*.yml
+*.json
