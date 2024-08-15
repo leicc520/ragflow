@@ -498,8 +498,8 @@ class RAGFlowPdfParser:
                     if i - dp < 5 and up.get("layout_type") == "text":
                         if up.get("layoutno", "1") == down.get(
                                 "layoutno", "2"):
-                            #段落结束的判定规则
-                            if up.get("text", "").strip()[-1] in [".", "。"]:
+                            #段落结束的判定规则且大于3行了结束
+                            if up.get("text", "").strip()[-1] in [".", "。", ")"] and len(chunks) >= 3:
                                 return
                             dfs(down, i + 1)
                             boxes.pop(i)
