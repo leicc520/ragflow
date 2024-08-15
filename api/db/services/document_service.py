@@ -21,7 +21,7 @@ from peewee import fn
 from api.db.db_utils import bulk_insert_into_db
 from api.settings import stat_logger
 from api.utils import current_timestamp, get_format_time, get_uuid
-from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER, SVR_QUEUE_NAME_CLINICAL
+from rag.settings import SVR_QUEUE_NAME, SVR_QUEUE_NAME_CRAWLER, SVR_QUEUE_NAME_CLINICAL, ParserVersionEnum
 from rag.utils.es_conn import ELASTICSEARCH
 from rag.nlp import search
 
@@ -166,10 +166,11 @@ class DocumentService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def increment_chunk_num(cls, doc_id, kb_id, token_num, chunk_num, duation):
+    def increment_chunk_num(cls, doc_id, kb_id, token_num, chunk_num, duration):
         num = cls.model.update(token_num=cls.model.token_num + token_num,
                                chunk_num=cls.model.chunk_num + chunk_num,
-                               process_duation=cls.model.process_duation + duation).where(
+                               version=ParserVersionEnum,
+                               process_duation=cls.model.process_duation + duration).where(
             cls.model.id == doc_id).execute()
         if num == 0:
             raise LookupError(
