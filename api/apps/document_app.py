@@ -282,11 +282,11 @@ def run():
                 info["progress_msg"] = ""
                 info["chunk_num"] = 0
                 info["token_num"] = 0
-            DocumentService.update_by_id(id, info)
             # if str(req["run"]) == TaskStatus.CANCEL.value:
             tenant_id = DocumentService.get_tenant_id(id)
             if not tenant_id:
                 return get_data_error_result(retmsg="Tenant not found!")
+            DocumentService.update_by_id(id, info)
             ELASTICSEARCH.deleteByQuery(
                 Q("match", doc_id=id), idxnm=search.index_name(tenant_id))
             
@@ -314,11 +314,11 @@ def run_test():
                 info["progress_msg"] = ""
                 info["chunk_num"] = 0
                 info["token_num"] = 0
-            DocumentService.update_by_id(id, info)
             # if str(req["run"]) == TaskStatus.CANCEL.value:
             tenant_id = DocumentService.get_tenant_id(id)
             if not tenant_id:
                 return get_data_error_result(retmsg="Tenant not found!")
+            DocumentService.update_by_id(id, info)
             ELASTICSEARCH.deleteByQuery(
                 Q("match", doc_id=id), idxnm=search.index_name(tenant_id))
             

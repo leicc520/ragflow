@@ -296,6 +296,10 @@ def main(queue_name):
         return
 
     for _, r in rows.iterrows():
+        #针对已经执行过的记录跳过
+        _, doc = DocumentService.get_by_id(r["doc_id"])
+        if doc is None or (doc.chunk_num > 0 and doc.progress >= 0.999):
+            continue
         callback = partial(set_progress, r["id"], r["from_page"], r["to_page"])
         try:
             embd_mdl = LLMBundle(r["tenant_id"], LLMType.EMBEDDING, llm_name=r["embd_id"], lang=r["language"])
@@ -364,6 +368,10 @@ def main(queue_name):
                 "Chunk doc({}), token({}), chunks({}), elapsed:{:.2f}".format(
                     r["id"], tk_count, len(cks), timer() - st))
         call_rag_notify(r)  # 通知第三方业务处理完成
+    # 早点8-晚上21点 wait for 5 minutes
+    n = datetime.datetime.now().hour
+    if 8 <= n <= 21 and queue_name == SVR_QUEUE_NAME_CLINICAL:
+        time.sleep(300)
 
 if __name__ == "__main__":
     peewee_logger = logging.getLogger('peewee')
