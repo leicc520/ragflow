@@ -329,6 +329,17 @@ class RAGFlowPdfParser:
             self.boxes[i]["bottom"] += \
                 self.page_cum_height[self.boxes[i]["page_number"] - 1]
 
+    def _layout_sorted(self):
+        chunks = Recognizer.sort_Y_firstly(self.boxes, 0)
+        for i in range(len(chunks)):
+            page = chunks[i].get("page_number", 1) * 10000
+            chunks[i]["sort"] = page + 0
+            if chunks[i].get('x0', 0) > 200:
+                chunks[i]["sort"] = page + 1
+            i += 1
+        chunks.sort(key=lambda x: x['sort'])
+        self.boxes = chunks
+
     def _text_merge(self):
         # merge adjusted boxes
         bxs = self.boxes
@@ -498,9 +509,7 @@ class RAGFlowPdfParser:
                     if i - dp < 5 and up.get("layout_type") == "text":
                         if up.get("layoutno", "1") == down.get(
                                 "layoutno", "2"):
-                            #段落结束的判定规则且大于3行了结束
-                            if up.get("text", "").strip()[-1] in [".", "。", ")"] and len(chunks) >= 3:
-                                return
+
                             dfs(down, i + 1)
                             boxes.pop(i)
                             return
@@ -523,7 +532,7 @@ class RAGFlowPdfParser:
 
         # concat within each block
         boxes = sentence_tokenize_merge(blocks, chunk_token_num)
-        self.boxes = Recognizer.sort_Y_firstly(boxes, 0)
+        self.boxes = boxes
 
     def _filter_forpages(self):
         if not self.boxes:

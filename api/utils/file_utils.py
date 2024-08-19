@@ -63,6 +63,8 @@ def sentence_tokenize_merge(blocks, max_len=128):
                     c["text"] = c["text"][index+1:]
                     t = c #重新初始化c继续后续拼接逻辑
                     continue
+            if c["layout_type"].strip() == "title":
+                t["text"] += " " #标题后面跟空格
             t["text"] += c["text"]
         boxes.append(t)
     return boxes
