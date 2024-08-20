@@ -341,17 +341,17 @@ class RAGFlowPdfParser:
             while j < page:
                 page_top += self.page_images[j - 1].size[1] / ZM
                 j += 1
-            if chunks[i]["layout_type"] == "title":
-                text = chunks[i]["text"].strip()
-                is_reference = text == "References"
-            if is_reference:
-                chunks[i]["layout_type"] = "references"
-            elif chunks[i]["top"] - page_top < header_top:
+
+            if chunks[i]["top"] - page_top < header_top:
                 chunks[i]["layout_type"] = "header"
             elif chunks[i]["bottom"] - page_top > footer_bottom:
                 chunks[i]["layout_type"] = "footer"
             else:
-                pass
+                if chunks[i]["layout_type"] == "title":
+                    text = chunks[i]["text"].strip()
+                    is_reference = text == "References"
+                if is_reference:
+                    chunks[i]["layout_type"] = "references"
             chunks[i]["sort"] = page*10000 + 0
             if chunks[i].get('x0', 0) > 200:
                 chunks[i]["sort"] = page*10000 + 1
