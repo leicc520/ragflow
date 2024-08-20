@@ -48,7 +48,7 @@ cron_logger.setLevel(20)
 chunk_logger = getLogger("chunk_logger")
 database_logger = getLogger("database")
 
-ParserVersionEnum = "v1.0.2"
+ParserVersionEnum = "v1.0.3"
 SVR_QUEUE_NAME = "rag_flow_svr_queue"
 SVR_QUEUE_NAME_CRAWLER = "rag_flow_svr_queue_crawler"
 SVR_QUEUE_NAME_CLINICAL = "rag_flow_svr_queue_clinical"
