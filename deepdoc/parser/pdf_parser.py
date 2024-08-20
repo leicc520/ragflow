@@ -332,6 +332,7 @@ class RAGFlowPdfParser:
     def _layout_sorted(self, ZM):
         chunks = Recognizer.sort_Y_firstly(self.boxes, 0)
         # add sort feature
+        left_nums, right_nums, total_nums = 0, 0, 0
         is_reference = False
         for i in range(len(chunks)):
             page = chunks[i].get("page_number", 1)
@@ -352,15 +353,21 @@ class RAGFlowPdfParser:
                     is_reference = text == "References"
                 if is_reference:
                     chunks[i]["layout_type"] = "references"
-            chunks[i]["sort"] = page*10000 + 0
+            total_nums += 1
             if chunks[i].get('x0', 0) > 200:
                 chunks[i]["sort"] = page*10000 + 1
+                left_nums += 1
+            else:
+                chunks[i]["sort"] = page * 10000 + 0
+                right_nums += 1
             i += 1
         # 移除页眉页脚
         chunks = [c for c in chunks if c.get("layout_type", "") != "header" \
                   and c.get("layout_type", "") != "footer" \
                   and c.get("layout_type", "") != "references"]
-        chunks.sort(key=lambda x: x['sort'])
+        #数组左右结构的部署特征做排序逻辑
+        if left_nums * 1.0 / total_nums >= 0.3 and right_nums * 1.0 / total_nums >= 0.3:
+            chunks.sort(key=lambda x: x['sort'])
         self.boxes = chunks
 
     def _text_merge(self):

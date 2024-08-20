@@ -296,9 +296,10 @@ def main():
     doc = Document.select().where(Document.id == "962b30865dd411efb92a525400a5affd").get()
     r = doc.to_dict()
     rb_dict = kb.to_dict()
-    r["from_page"] = 8
-    r["to_page"] = 12
+    r["from_page"] = 0
+    r["to_page"] = 15
     r["doc_id"] = r["id"]
+    del r['parser_config']
     r = {**rb_dict, **r}
 
     cks = build(r)
