@@ -361,7 +361,7 @@ def naive_merge(sections, chunk_token_num=128, delimiter="\n。；！？"):
     def add_chunk(t, pos):
         nonlocal cks, tk_nums, delimiter
         tnum = num_tokens_from_string(t)
-        if tnum < 8:
+        if tnum < 1: #8
             pos = ""
         if tk_nums[-1] > chunk_token_num:
             if t.find(pos) < 0:
@@ -371,7 +371,7 @@ def naive_merge(sections, chunk_token_num=128, delimiter="\n。；！？"):
         else:
             if cks[-1].find(pos) < 0:
                 t += pos
-            cks[-1] += t
+            cks[-1] += " "+t
             tk_nums[-1] += tnum
 
     for sec, pos in sections:
