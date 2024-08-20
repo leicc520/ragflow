@@ -352,11 +352,15 @@ class RAGFlowPdfParser:
                     is_reference = text == "References"
                 if is_reference:
                     chunks[i]["layout_type"] = "references"
+            chunks[i]["sort"] = page*10000 + 0
+            if chunks[i].get('x0', 0) > 200:
+                chunks[i]["sort"] = page*10000 + 1
             i += 1
         # 移除页眉页脚
         chunks = [c for c in chunks if c.get("layout_type", "") != "header" \
                   and c.get("layout_type", "") != "footer" \
                   and c.get("layout_type", "") != "references"]
+        chunks.sort(key=lambda x: x['sort'])
         self.boxes = chunks
 
     def _text_merge(self):
