@@ -329,14 +329,37 @@ class RAGFlowPdfParser:
             self.boxes[i]["bottom"] += \
                 self.page_cum_height[self.boxes[i]["page_number"] - 1]
 
-    def _layout_sorted(self):
+    def _layout_sorted(self, ZM):
         chunks = Recognizer.sort_Y_firstly(self.boxes, 0)
+        # add sort feature
+        is_reference = False
         for i in range(len(chunks)):
-            page = chunks[i].get("page_number", 1) * 10000
-            chunks[i]["sort"] = page + 0
+            page = chunks[i].get("page_number", 1)
+            header_top = self.page_images[page - 1].size[1] * 0.05/ZM
+            footer_bottom = self.page_images[page - 1].size[1] * 0.95/ZM
+            page_top, j = 0,  1 #分页的高度业务处理逻辑
+            while j < page:
+                page_top += self.page_images[j - 1].size[1] / ZM
+                j += 1
+            if chunks[i]["layout_type"] == "title":
+                text = chunks[i]["text"].strip()
+                is_reference = text == "References"
+            if is_reference:
+                chunks[i]["layout_type"] = "references"
+            elif chunks[i]["top"] - page_top < header_top:
+                chunks[i]["layout_type"] = "header"
+            elif chunks[i]["bottom"] - page_top > footer_bottom:
+                chunks[i]["layout_type"] = "footer"
+            else:
+                pass
+            chunks[i]["sort"] = page*10000 + 0
             if chunks[i].get('x0', 0) > 200:
-                chunks[i]["sort"] = page + 1
+                chunks[i]["sort"] = page*10000 + 1
             i += 1
+        # 移除页眉页脚
+        chunks = [c for c in chunks if c.get("layout_type", "") != "header" \
+                  and c.get("layout_type", "") != "footer" \
+                  and c.get("layout_type", "") != "references"]
         chunks.sort(key=lambda x: x['sort'])
         self.boxes = chunks
 

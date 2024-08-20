@@ -88,7 +88,7 @@ class Pdf(PdfParser):
         self._table_transformer_job(zoomin)
         callback(0.65, "Table analysis finished.")
         self._text_merge()
-        self._layout_sorted()
+        self._layout_sorted(zoomin)
         callback(0.67, "Text merging finished")
         tbls = self._extract_table_figure(True, zoomin, True, True)
         #self._naive_vertical_merge()
