@@ -258,8 +258,9 @@ def rm():
             f2d = File2DocumentService.get_by_document_id(doc_id)
             FileService.filter_delete([File.source_type == FileSource.KNOWLEDGEBASE, File.id == f2d[0].file_id])
             File2DocumentService.delete_by_document_id(doc_id)
-
             MINIO.rm(b, n)
+            ELASTICSEARCH.deleteByQuery(
+                Q("match", doc_id=doc_id), idxnm=search.index_name(tenant_id))
         except Exception as e:
             errors += str(e)
 
