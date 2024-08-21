@@ -316,11 +316,11 @@ def upload():
             return get_data_error_result(
                 retmsg="This type of file has not been supported yet!")
 
-        location = filename
-        while MINIO.obj_exist(kb_id, location):
-            location += "_"
         blob = request.files['file'].read()
-        MINIO.put(kb_id, location, blob)
+        location = filename
+        #不存在则上传
+        if not MINIO.obj_exist(kb_id, location):
+            MINIO.put(kb_id, location, blob)
         doc = {
             "id": get_uuid(),
             "kb_id": kb.id,
