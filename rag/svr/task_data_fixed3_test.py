@@ -21,16 +21,18 @@ from rag.utils.minio_conn import MINIO
 
 '''检测数据丢失的记录清空'''
 def main():
-    docs = Document.select(Document.id).where(Document.kb_id == 'e883ad1e2ee911efb7fa5254002a1a65').\
-        where(Document.version != 'v1.999999')
+    docs = Document.select(Document.id, Document.create_time).where(Document.kb_id == 'e883ad1e2ee911efb7fa5254002a1a65').\
+        where(Document.version != 'v1.999999').order_by(Document.create_time)
     docs = list(docs.dicts())
     if not docs:
         return
+
+    file = open('docs_missing.txt', 'w')
     for doc in docs:
-        print(doc.get('id'))
+        print(doc.get('id'), doc.get('create_time'))
         b, n = File2DocumentService.get_minio_address(doc_id=doc.get('id'))
-        if not MINIO.obj_exists(b, n):
-            print(f"{n}/{doc.get('id')}")
+        if not MINIO.obj_exist(b, n):
+            file.write(f"{n}/{doc.get('id')}\n")
 
 if __name__ == "__main__":
     main()
