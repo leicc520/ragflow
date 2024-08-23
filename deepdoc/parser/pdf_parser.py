@@ -329,10 +329,8 @@ class RAGFlowPdfParser:
             self.boxes[i]["bottom"] += \
                 self.page_cum_height[self.boxes[i]["page_number"] - 1]
 
-    def _layout_sorted(self, ZM):
-        chunks = Recognizer.sort_Y_firstly(self.boxes, 0)
-        # add sort feature
-        left_nums, right_nums, total_nums = 0, 0, 0
+    def _layout_filter(self, ZM):
+        chunks = deepcopy(self.boxes)
         is_reference = False
         for i in range(len(chunks)):
             page = chunks[i].get("page_number", 1)
@@ -353,21 +351,11 @@ class RAGFlowPdfParser:
                     is_reference = text == "References"
                 if is_reference:
                     chunks[i]["layout_type"] = "references"
-            total_nums += 1
-            if chunks[i].get('x0', 0) > 200:
-                chunks[i]["sort"] = page*10000 + 1
-                left_nums += 1
-            else:
-                chunks[i]["sort"] = page * 10000 + 0
-                right_nums += 1
             i += 1
         # 移除页眉页脚
         chunks = [c for c in chunks if c.get("layout_type", "") != "header" \
                   and c.get("layout_type", "") != "footer" \
                   and c.get("layout_type", "") != "references"]
-        #数组左右结构的部署特征做排序逻辑
-        if left_nums * 1.0 / total_nums >= 0.3 and right_nums * 1.0 / total_nums >= 0.3:
-            chunks.sort(key=lambda x: x['sort'])
         self.boxes = chunks
 
     def _text_merge(self):
@@ -562,7 +550,7 @@ class RAGFlowPdfParser:
 
         # concat within each block
         boxes = sentence_tokenize_merge(blocks, chunk_token_num)
-        self.boxes = boxes
+        self.boxes = Recognizer.sort_Y_firstly(boxes, 0)
 
     def _filter_forpages(self):
         if not self.boxes:

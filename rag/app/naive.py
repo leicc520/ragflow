@@ -21,7 +21,6 @@ from deepdoc.parser import PdfParser, ExcelParser, DocxParser, HtmlParser
 from rag.settings import cron_logger
 from rag.utils import num_tokens_from_string
 
-
 class Docx(DocxParser):
     def __init__(self):
         pass
@@ -88,7 +87,7 @@ class Pdf(PdfParser):
         self._table_transformer_job(zoomin)
         callback(0.65, "Table analysis finished.")
         self._text_merge()
-        self._layout_sorted(zoomin)
+        self._layout_filter(zoomin)
         callback(0.67, "Text merging finished")
         tbls = self._extract_table_figure(True, zoomin, True, True)
         #self._naive_vertical_merge()
@@ -185,7 +184,6 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
         sections, parser_config.get(
             "chunk_token_num", 128), parser_config.get(
             "delimiter", "\n!?。；！？"))
-
     res.extend(tokenize_chunks(chunks, doc, eng, pdf_parser))
     cron_logger.info("naive_merge({}): {}".format(filename, timer() - st))
     return res
