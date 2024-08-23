@@ -292,12 +292,12 @@ def run_raptor(row, chat_mdl, embd_mdl, callback=None):
 
 
 def main():
-    kb = Knowledgebase.select().where(Knowledgebase.id == "700bf9f62e5611ef86e6525400c442a4").get()
-    doc = Document.select().where(Document.id == "962b30865dd411efb92a525400a5affd").get()
+    kb = Knowledgebase.select().where(Knowledgebase.id == "e883ad1e2ee911efb7fa5254002a1a65").get()
+    doc = Document.select().where(Document.id == "f6d91a185bdd11efbaff525400a5affd").get()
     r = doc.to_dict()
     rb_dict = kb.to_dict()
     r["from_page"] = 0
-    r["to_page"] = 15
+    r["to_page"] = 3
     r["doc_id"] = r["id"]
     del r['parser_config']
     r = {**rb_dict, **r}

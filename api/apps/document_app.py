@@ -297,8 +297,13 @@ def run():
                 doc = doc.to_dict()
                 doc["tenant_id"] = tenant_id
                 bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
-                queue_tasks(doc, bucket, name)
-
+                use_type = doc.get("use_type", "")
+                queue_name = SVR_QUEUE_NAME
+                if use_type == "document":
+                    queue_name = SVR_QUEUE_NAME_CRAWLER
+                elif use_type == "clinical":
+                    queue_name = SVR_QUEUE_NAME_CLINICAL
+                queue_tasks(doc, bucket, name, queue_name)
         return get_json_result(data=True)
     except Exception as e:
         return server_error_response(e)
